@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  FARMER
+  DOCTOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  REJECTED
+  PENDING_ADMIN_APPROVAL
+}
+
+enum DoctorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  NOT_REQUIRED
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  passwordHash    String
+  fullName        String
+  phone           String?
+  role            Role
+  status          UserStatus     @default(ACTIVE)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  farmerProfile   FarmerProfile?
+  doctorProfile   DoctorProfile?
+  adminProfile    AdminProfile?
+  notifications   Notification[]
+  appointmentsAsFarmer Appointment[] @relation("FarmerAppointments")
+}
+
+model FarmerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  city            String?
+  state           String?
+  country         String?
+  latitude        Float?
+  longitude       Float?
+  address         String?
+  bio             String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model DoctorProfile {
+  id                    String          @id @default(cuid())
+  userId                String          @unique
+  user                  User            @relation(fields: [userId], references: [id])
+  fullName              String
+  degree                String?
+  university            String?
+  specialization        String?
+  experienceYears       Int?
+  licenseNumber         String?
+  profilePhoto          String?
+  address               String?
+  city                  String?
+  state                 String?
+  country               String?
+  latitude              Float?
+  longitude             Float?
+  bio                   String?
+  availability          String?
+  verificationStatus    DoctorStatus    @default(PENDING)
+  verifiedAt            DateTime?
+  rating                Float           @default(0)
+  reviewCount           Int             @default(0)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  appointments         Appointment[]
+  reviews              Review[]
+  alerts               DiseaseAlert[]
+  documents            MedicalDocument[]
+}
+
+model AdminProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Appointment {
+  id                 String            @id @default(cuid())
+  farmerId           String
+  doctorId           String
+  date               String
+  startTime          String
+  endTime            String
+  reason             String
+  animalType         String?
+  animalName         String?
+  animalAge          String?
+  animalGender       String?
+  animalSymptoms     String?
+  duration           String?
+  notes              String?
+  status             AppointmentStatus @default(REQUESTED)
+  paymentStatus      PaymentStatus     @default(NOT_REQUIRED)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  farmer             User              @relation("FarmerAppointments", fields: [farmerId], references: [id])
+  doctor             DoctorProfile     @relation(fields: [doctorId], references: [id])
+  review             Review?
+  payment            Payment?
+  medicalDocument    MedicalDocument?
+  notifications      Notification[]
+}
+
+model Review {
+  id            String      @id @default(cuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  doctorId      String
+  doctor        DoctorProfile @relation(fields: [doctorId], references: [id])
+  farmerId      String
+  rating        Int
+  comment       String?
+  createdAt     DateTime    @default(now())
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  appointmentId  String        @unique
+  appointment    Appointment   @relation(fields: [appointmentId], references: [id])
+  amount         Float
+  reason         String?
+  status         PaymentStatus @default(PENDING)
+  provider       String        @default("mock")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model MedicalDocument {
+  id                String         @id @default(cuid())
+  appointmentId     String         @unique
+  appointment       Appointment    @relation(fields: [appointmentId], references: [id])
+  doctorId          String
+  doctor            DoctorProfile  @relation(fields: [doctorId], references: [id])
+  farmerId          String
+  title             String
+  notes             String?
+  content           String?
+  authenticatedBy   String?
+  authenticationId  String?
+  signatureData     String?
+  pdfPath           String?
+  createdAt         DateTime       @default(now())
+  medicines         Medicine[]
+}
+
+model Medicine {
+  id                String          @id @default(cuid())
+  documentId        String
+  document          MedicalDocument @relation(fields: [documentId], references: [id])
+  name              String
+  dosage            String?
+  frequency         String?
+  duration          String?
+  createdAt         DateTime        @default(now())
+}
+
+model DiseaseAlert {
+  id               String        @id @default(cuid())
+  doctorId         String
+  doctor           DoctorProfile @relation(fields: [doctorId], references: [id])
+  disease          String
+  areaName         String
+  radiusKm         Int
+  severity         AlertSeverity @default(HIGH)
+  description      String?
+  startDate        String
+  endDate          String?
+  latitude         Float
+  longitude        Float
+  active           Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  message     String
+  type        String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  appointmentId String?
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+}
+
+model DoctorAvailability {
+  id         String   @id @default(cuid())
+  doctorId   String
+  dayOfWeek  String
+  startTime  String
+  endTime    String
+  createdAt  DateTime @default(now())
+}
+
+model AdminApproval {
+  id         String   @id @default(cuid())
+  adminId    String
+  targetUserId String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+}
