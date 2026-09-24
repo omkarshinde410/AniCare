@@ -85,8 +85,8 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ message: 'Invalid email or password.' })
   }
 
-  if (user.role === 'DOCTOR' && user.status !== 'ACTIVE') {
-    return res.status(403).json({ message: 'Your doctor account is still awaiting verification.' })
+  if (user.role === 'DOCTOR' && user.status === 'REJECTED') {
+    return res.status(403).json({ message: 'Your doctor account was rejected. Please contact an administrator.' })
   }
 
   if (user.role === 'ADMIN' && user.status !== 'ACTIVE') {

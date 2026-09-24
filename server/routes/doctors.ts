@@ -13,19 +13,6 @@ router.get('/', requireAuth, requireRole('FARMER'), async (_req, res) => {
   return res.json(doctors)
 })
 
-router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
-  const doctor = await prisma.doctorProfile.findUnique({
-    where: { id: req.params.id },
-    include: { user: true },
-  })
-
-  if (!doctor) {
-    return res.status(404).json({ message: 'Doctor not found.' })
-  }
-
-  return res.json(doctor)
-})
-
 router.get('/nearby', requireAuth, requireRole('FARMER'), async (req: AuthRequest, res) => {
   const { lat, lng, radius, search } = req.query as Record<string, string | undefined>
   const latitude = Number(lat)
@@ -66,6 +53,19 @@ router.get('/nearby', requireAuth, requireRole('FARMER'), async (req: AuthReques
 router.get('/me', requireAuth, requireRole('DOCTOR'), async (req: AuthRequest, res) => {
   const profile = await prisma.doctorProfile.findUnique({ where: { userId: req.user!.userId } })
   return res.json(profile)
+})
+
+router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
+  const doctor = await prisma.doctorProfile.findUnique({
+    where: { id: req.params.id },
+    include: { user: true },
+  })
+
+  if (!doctor) {
+    return res.status(404).json({ message: 'Doctor not found.' })
+  }
+
+  return res.json(doctor)
 })
 
 const doctorProfileSchema = z.object({
