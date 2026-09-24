@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: anicare
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: |
+      npm install
+      npx prisma generate
+      npm run build
+    startCommand: |
+      NODE_ENV=production npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CLIENT_URL
+        value: https://your-render-domain.onrender.com
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: anicare-db
+          property: connectionString
+
+databases:
+  - name: anicare-db
+    databaseName: anicare
+    user: anicare
+    plan: free

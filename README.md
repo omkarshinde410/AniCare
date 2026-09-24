@@ -38,16 +38,21 @@ This project is designed to remain free to develop and run locally.
 
 ## Production-ready setup
 
+For local development, this project uses SQLite by default. For Render production deployment, override the database with PostgreSQL by setting the Render environment variable `DATABASE_URL` to your managed Postgres connection string.
+
 1. Install dependencies:
    npm install
-2. Create a production environment file:
+2. Create a local environment file:
    cp .env.example .env
-3. Update values for your deployment environment, especially JWT_SECRET and CLIENT_URL.
-4. Sync the database:
+3. For local development, keep:
+   DATABASE_URL="file:./dev.db"
+4. For Render production, set:
+   DATABASE_URL="postgresql://postgres:postgres@host:5432/anicare?schema=public"
+5. Sync the database:
    npx prisma db push
-5. Build the client bundle:
+6. Build the client bundle:
    npm run build
-6. Start the app in production mode:
+7. Start the app in production mode:
    NODE_ENV=production npm run start
 
 The server will serve the built frontend from the dist folder and expose the API on the same host.
