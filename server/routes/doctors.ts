@@ -55,19 +55,6 @@ router.get('/me', requireAuth, requireRole('DOCTOR'), async (req: AuthRequest, r
   return res.json(profile)
 })
 
-router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
-  const doctor = await prisma.doctorProfile.findUnique({
-    where: { id: req.params.id },
-    include: { user: true },
-  })
-
-  if (!doctor) {
-    return res.status(404).json({ message: 'Doctor not found.' })
-  }
-
-  return res.json(doctor)
-})
-
 const optionalText = z.preprocess(
   (value) => value === null ? undefined : value,
   z.string().optional(),
@@ -120,6 +107,19 @@ router.get('/pending', requireAuth, requireRole('ADMIN'), async (_req, res) => {
     include: { user: true },
   })
   return res.json(doctors)
+})
+
+router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
+  const doctor = await prisma.doctorProfile.findUnique({
+    where: { id: req.params.id },
+    include: { user: true },
+  })
+
+  if (!doctor) {
+    return res.status(404).json({ message: 'Doctor not found.' })
+  }
+
+  return res.json(doctor)
 })
 
 router.patch('/:id/verify', requireAuth, requireRole('ADMIN'), async (req, res) => {
