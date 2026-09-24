@@ -68,22 +68,31 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
   return res.json(doctor)
 })
 
+const optionalText = z.preprocess(
+  (value) => value === null ? undefined : value,
+  z.string().optional(),
+)
+const optionalNumber = z.preprocess(
+  (value) => value === '' || value === null ? undefined : value,
+  z.coerce.number().min(0).optional(),
+)
+
 const doctorProfileSchema = z.object({
   fullName: z.string().min(2).optional(),
-  degree: z.string().optional(),
-  university: z.string().optional(),
-  specialization: z.string().optional(),
-  experienceYears: z.coerce.number().min(0).optional(),
-  licenseNumber: z.string().optional(),
-  profilePhoto: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  country: z.string().optional(),
-  latitude: z.coerce.number().optional(),
-  longitude: z.coerce.number().optional(),
-  bio: z.string().optional(),
-  availability: z.string().optional(),
+  degree: optionalText,
+  university: optionalText,
+  specialization: optionalText,
+  experienceYears: optionalNumber,
+  licenseNumber: optionalText,
+  profilePhoto: optionalText,
+  address: optionalText,
+  city: optionalText,
+  state: optionalText,
+  country: optionalText,
+  latitude: optionalNumber,
+  longitude: optionalNumber,
+  bio: optionalText,
+  availability: optionalText,
 })
 
 router.post('/profile', requireAuth, requireRole('DOCTOR'), async (req: AuthRequest, res) => {
