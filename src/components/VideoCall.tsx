@@ -4,6 +4,8 @@ type SignalMessage = { type: string; role?: 'offerer' | 'answerer'; data?: unkno
 
 const iceServers: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
   ...(import.meta.env.VITE_TURN_URL ? [{
     urls: import.meta.env.VITE_TURN_URL,
     username: import.meta.env.VITE_TURN_USERNAME,
@@ -16,6 +18,7 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
   const [now, setNow] = useState(() => new Date())
   const [status, setStatus] = useState('Ready for a private video call')
   const remoteVideo = useRef<HTMLVideoElement>(null)
+  const remoteStream = useRef<MediaStream | null>(null)
   const socket = useRef<WebSocket | null>(null)
   const peer = useRef<RTCPeerConnection | null>(null)
   const localStream = useRef<MediaStream | null>(null)
@@ -49,15 +52,23 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
       peer.current = new RTCPeerConnection({ iceServers })
       localStream.current.getTracks().forEach((track) => peer.current?.addTrack(track, localStream.current!))
       peer.current.ontrack = (event) => {
-        if (!remoteVideo.current) return
-        const stream = event.streams[0] ?? new MediaStream([event.track])
-        remoteVideo.current.srcObject = stream
-        void remoteVideo.current.play().catch(() => undefined)
+        remoteStream.current = event.streams[0] ?? new MediaStream([event.track])
+        if (remoteVideo.current) {
+          remoteVideo.current.srcObject = remoteStream.current
+          void remoteVideo.current.play().catch(() => undefined)
+        }
       }
       peer.current.onicecandidate = (event) => {
         if (event.candidate) sendSignal({ type: 'candidate', data: event.candidate.toJSON() })
       }
-      peer.current.onconnectionstatechange = () => setStatus(`Call ${peer.current?.connectionState ?? 'connecting'}`)
+      peer.current.onconnectionstatechange = () => {
+        const state = peer.current?.connectionState ?? 'connecting'
+        setStatus(state === 'connected' ? 'Call connected' : `Call ${state}`)
+      }
+      peer.current.oniceconnectionstatechange = () => {
+        const state = peer.current?.iceConnectionState
+        if (state === 'failed' || state === 'disconnected') setStatus('Network connection failed. A TURN server may be required.')
+      }
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
       socket.current = new WebSocket(`${protocol}//${window.location.host}/ws/signaling?appointmentId=${encodeURIComponent(appointmentId)}&token=${encodeURIComponent(token)}`)
@@ -112,6 +123,7 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
     peer.current?.close()
     localStream.current?.getTracks().forEach((track) => track.stop())
     if (remoteVideo.current) remoteVideo.current.srcObject = null
+    remoteStream.current = null
     setActive(false)
     setStatus('Call ended')
   }
@@ -127,6 +139,13 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
     if (active && !withinWindow) endCall()
   }, [active, withinWindow])
 
+  useEffect(() => {
+    if (remoteVideo.current && remoteStream.current) {
+      remoteVideo.current.srcObject = remoteStream.current
+      void remoteVideo.current.play().catch(() => undefined)
+    }
+  }, [active])
+
   return (
     <div className="video-call">
       <p className="muted">{status}</p>
@@ -139,7 +158,7 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
       ) : (
         <>
           <div className="video-grid">
-            <video ref={remoteVideo} autoPlay playsInline className="remote-video" />
+            <video ref={remoteVideo} autoPlay playsInline onLoadedMetadata={(event) => void event.currentTarget.play().catch(() => undefined)} className="remote-video" />
           </div>
           <button type="button" className="button secondary" onClick={endCall}>End call</button>
         </>
