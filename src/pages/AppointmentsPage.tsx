@@ -30,9 +30,14 @@ export default function AppointmentsPage() {
           <div className="stack" style={{ marginTop: 18 }}>
             {appointments.map((appointment) => (
               <div key={appointment.id} className="card" style={{ padding: 16 }}>
-                <h3>{appointment.doctor?.user?.fullName ?? 'Veterinary doctor'}</h3>
+                <h3>
+                  {role === 'DOCTOR'
+                    ? `Farmer: ${appointment.farmer?.fullName ?? 'Farmer'}`
+                    : appointment.doctor?.user?.fullName ?? 'Veterinary doctor'}
+                </h3>
                 <p>{appointment.date} • {appointment.startTime} - {appointment.endTime}</p>
                 <p>Reason: {appointment.reason}</p>
+                {role === 'DOCTOR' && <p>Animal: {appointment.animalName ?? appointment.animalType ?? 'Not specified'}</p>}
                 <p>Status: {appointment.status}</p>
 
                 {role === 'DOCTOR' && appointment.status === 'REQUESTED' && (

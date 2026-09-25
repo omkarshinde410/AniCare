@@ -91,7 +91,7 @@ export default function DoctorDashboard() {
       <section className="card" style={{ marginTop: 20 }}>
         <h3>Quick actions</h3>
         <div className="actions">
-          {user.status === 'ACTIVE' && <Link className="button primary" to="/doctor/approvals">Review requests</Link>}
+          {user.status === 'ACTIVE' && <Link className="button primary" to="/doctor/appointments">Review requests</Link>}
           {user.status !== 'ACTIVE' && <p>Your dashboard access is limited until an administrator approves your profile.</p>}
         </div>
       </section>

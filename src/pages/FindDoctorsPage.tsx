@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
+import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import { api } from '../api'
 import 'leaflet/dist/leaflet.css'
 
 type Coordinates = [number, number]
 
 const defaultLocation: Coordinates = [20.5937, 78.9629]
+
+function MapViewport({ location }: { location: Coordinates }) {
+  const map = useMap()
+  useEffect(() => {
+    map.setView(location)
+  }, [location, map])
+  return null
+}
 
 export default function FindDoctorsPage() {
   const [doctors, setDoctors] = useState<any[]>([])
@@ -63,6 +71,7 @@ export default function FindDoctorsPage() {
 
       <section className="card map-card">
         <MapContainer center={location} zoom={5} scrollWheelZoom className="doctor-map">
+          <MapViewport location={location} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -77,10 +86,19 @@ export default function FindDoctorsPage() {
               pathOptions={{ color: '#b45309', fillColor: '#f59e0b', fillOpacity: 0.9 }}
               radius={8}
             >
-              <Popup>
-                <strong>{doctor.fullName}</strong>
+              <Tooltip permanent direction="top" offset={[0, -8]} className="doctor-map-label">
+                <span aria-hidden="true">👤</span> {doctor.fullName}
                 <br />
                 {doctor.specialization ?? 'Veterinary doctor'}
+                <br />
+                Rating: {doctor.rating ?? 0} ★
+              </Tooltip>
+              <Popup>
+                <strong>👤 {doctor.fullName}</strong>
+                <br />
+                {doctor.specialization ?? 'Veterinary doctor'}
+                <br />
+                Rating: {doctor.rating ?? 0} ★
               </Popup>
             </CircleMarker>
           ))}
@@ -92,7 +110,7 @@ export default function FindDoctorsPage() {
           <div key={doctor.id} className="card doctor-card">
             <div className="doctor-header">
               <div>
-                <h3>{doctor.fullName}</h3>
+                <h3><span className="profile-icon" aria-hidden="true">👤</span>{doctor.fullName}</h3>
                 <p>{doctor.degree ?? 'Veterinary Doctor'}</p>
               </div>
               <span className="badge">Verified</span>
