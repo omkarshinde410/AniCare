@@ -3,6 +3,13 @@ import { jsPDF } from 'jspdf'
 import { api } from '../api'
 import VideoCall from '../components/VideoCall'
 
+function isAppointmentInWindow(appointment: any) {
+  const start = new Date(`${appointment.date}T${appointment.startTime}`)
+  const end = new Date(`${appointment.date}T${appointment.endTime}`)
+  const now = new Date()
+  return now >= start && now <= end
+}
+
 function DoctorDocumentForm({ appointment, doctorName }: { appointment: any; doctorName: string }) {
   const [title, setTitle] = useState('Medicine instructions')
   const [content, setContent] = useState('')
@@ -152,11 +159,14 @@ export default function AppointmentsPage() {
           <button className="button primary" onClick={() => downloadDocument(appointment.medicalDocument)}>Download PDF</button>
         </div>
       )}
-      {role === 'DOCTOR' && appointment.status === 'APPROVED' && (
+      {role === 'DOCTOR' && appointment.status === 'APPROVED' && isAppointmentInWindow(appointment) && (
         <>
           <DoctorDocumentForm appointment={appointment} doctorName={JSON.parse(localStorage.getItem('ani-care-user') ?? '{}').fullName ?? 'Veterinary doctor'} />
           <DoctorPaymentForm appointment={appointment} />
         </>
+      )}
+      {role === 'DOCTOR' && appointment.status === 'APPROVED' && !isAppointmentInWindow(appointment) && !appointment.medicalDocument && (
+        <p className="muted">Fee and medicine document options are available only during the scheduled appointment.</p>
       )}
       {role === 'FARMER' && appointment.payment?.status === 'PENDING' && (
         <div className="payment-form">

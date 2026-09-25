@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../index.js'
 import { requireAuth, requireRole, type AuthRequest } from '../middleware/auth.js'
+import { isAppointmentInWindow } from '../appointmentWindow.js'
 
 const router = Router()
 
@@ -19,7 +20,7 @@ router.post('/request', requireAuth, requireRole('DOCTOR'), async (req: AuthRequ
   const { appointmentId, amount, reason } = { ...req.body, ...parsed.data }
   const appointment = await prisma.appointment.findUnique({ where: { id: appointmentId } })
 
-  if (!appointment || appointment.doctorId !== (await prisma.doctorProfile.findUnique({ where: { userId: req.user!.userId } }))?.id) {
+  if (!appointment || appointment.status !== 'APPROVED' || !isAppointmentInWindow(appointment.date, appointment.startTime, appointment.endTime) || appointment.doctorId !== (await prisma.doctorProfile.findUnique({ where: { userId: req.user!.userId } }))?.id) {
     return res.status(403).json({ message: 'You cannot request payment for this appointment.' })
   }
 

@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../index.js'
 import { requireAuth, requireRole, type AuthRequest } from '../middleware/auth.js'
+import { isAppointmentInWindow } from '../appointmentWindow.js'
 
 const router = Router()
 
@@ -28,7 +29,7 @@ router.post('/', requireAuth, requireRole('DOCTOR'), async (req: AuthRequest, re
   }
 
   const appointment = await prisma.appointment.findUnique({ where: { id: parsed.data.appointmentId } })
-  if (!appointment || appointment.status !== 'APPROVED' || appointment.doctorId !== (await prisma.doctorProfile.findUnique({ where: { userId: req.user!.userId } }))?.id) {
+  if (!appointment || appointment.status !== 'APPROVED' || !isAppointmentInWindow(appointment.date, appointment.startTime, appointment.endTime) || appointment.doctorId !== (await prisma.doctorProfile.findUnique({ where: { userId: req.user!.userId } }))?.id) {
     return res.status(403).json({ message: 'You can only create documents for your own appointments.' })
   }
 
