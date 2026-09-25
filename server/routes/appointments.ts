@@ -87,7 +87,7 @@ router.get('/mine', requireAuth, async (req: AuthRequest, res) => {
       farmer: true,
       review: true,
       payment: true,
-      medicalDocument: { include: { medicines: true, doctor: { include: { user: true } }, farmer: true } },
+      medicalDocument: { include: { medicines: true, doctor: { include: { user: true } } } },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -143,7 +143,7 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
       farmer: true,
       payment: true,
       review: true,
-      medicalDocument: { include: { medicines: true, doctor: { include: { user: true } }, farmer: true } },
+      medicalDocument: { include: { medicines: true, doctor: { include: { user: true } } } },
     },
   })
 
