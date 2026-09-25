@@ -27,7 +27,20 @@ export default function DoctorDashboard() {
     setProfileMessage('')
     setProfileError('')
     try {
-      const response = await api.post('/doctors/profile', profile)
+      let locationFields = {}
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+          })
+          locationFields = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }
+        } catch {
+        }
+      }
+      const response = await api.post('/doctors/profile', { ...profile, ...locationFields })
       setProfile(response.data)
       setProfileMessage('Profile submitted. An administrator can now review it.')
     } catch (err: any) {
