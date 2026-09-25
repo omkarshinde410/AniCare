@@ -20,6 +20,8 @@ services:
         value: https://anicare-6hp2.onrender.com
       - key: VITE_API_URL
         value: https://anicare-6hp2.onrender.com/api
+      # Set VITE_TURN_URL, VITE_TURN_USERNAME, and VITE_TURN_CREDENTIAL in Render
+      # when a self-hosted Coturn server is available.
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import VideoCall from '../components/VideoCall'
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [role, setRole] = useState('FARMER')
+  const [notifications, setNotifications] = useState<any[]>([])
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('ani-care-user') ?? '{}')
@@ -12,6 +14,9 @@ export default function AppointmentsPage() {
     api.get('/appointments/mine')
       .then((res) => setAppointments(res.data))
       .catch(() => setAppointments([]))
+    api.get('/notifications')
+      .then((res) => setNotifications(res.data))
+      .catch(() => setNotifications([]))
   }, [])
 
   const handleStatus = async (id: string, status: 'APPROVED' | 'REJECTED' | 'CANCELLED') => {
@@ -24,6 +29,12 @@ export default function AppointmentsPage() {
     <main className="page shell">
       <div className="card">
         <h1>My Appointments</h1>
+        {notifications.filter((notification) => !notification.read).slice(0, 3).map((notification) => (
+          <div key={notification.id} className="notification-banner">
+            <strong>{notification.title}</strong>
+            <p>{notification.message}</p>
+          </div>
+        ))}
         {appointments.length === 0 ? (
           <p>No appointments yet.</p>
         ) : (
@@ -39,6 +50,8 @@ export default function AppointmentsPage() {
                 <p>Reason: {appointment.reason}</p>
                 {role === 'DOCTOR' && <p>Animal: {appointment.animalName ?? appointment.animalType ?? 'Not specified'}</p>}
                 <p>Status: {appointment.status}</p>
+                {role === 'DOCTOR' && <p>Farmer contact: {appointment.farmer?.phone ? <a href={`tel:${appointment.farmer.phone}`}>{appointment.farmer.phone}</a> : 'Not provided'}</p>}
+                {role === 'FARMER' && <p>Doctor contact: {appointment.doctor?.user?.phone ? <a href={`tel:${appointment.doctor.user.phone}`}>{appointment.doctor.user.phone}</a> : 'Not provided'}</p>}
 
                 {role === 'DOCTOR' && appointment.status === 'REQUESTED' && (
                   <div className="actions">
@@ -52,6 +65,8 @@ export default function AppointmentsPage() {
                     <button className="button secondary" onClick={() => handleStatus(appointment.id, 'CANCELLED')}>Cancel</button>
                   </div>
                 )}
+
+                {appointment.status === 'APPROVED' && <VideoCall appointmentId={appointment.id} />}
               </div>
             ))}
           </div>

@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { createServer } from 'node:http'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -15,6 +16,7 @@ import paymentRoutes from './routes/payments.js'
 import documentRoutes from './routes/documents.js'
 import diseaseRoutes from './routes/diseaseAlerts.js'
 import notificationRoutes from './routes/notifications.js'
+import { attachSignaling } from './signaling.js'
 
 export const prisma = new PrismaClient()
 const app = express()
@@ -58,7 +60,9 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 })
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(port, () => {
+  const server = createServer(app)
+  attachSignaling(server, prisma)
+  server.listen(port, () => {
     console.log(`AniCare API listening on http://localhost:${port}`)
   })
 }

@@ -7,6 +7,7 @@ export default function RegisterPage() {
   const navigate = useNavigate()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<'FARMER' | 'DOCTOR' | 'ADMIN'>('FARMER')
   const [message, setMessage] = useState('')
@@ -15,7 +16,7 @@ export default function RegisterPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     try {
-      const response = await api.post('/auth/register', { fullName, email, password, role })
+      const response = await api.post('/auth/register', { fullName, email, phone, password, role })
       setMessage(response.data.message)
       setError('')
       setTimeout(() => navigate('/login'), 1000)
@@ -37,6 +38,10 @@ export default function RegisterPage() {
           <label>
             Email
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </label>
+          <label>
+            Contact number
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
           </label>
           <label>
             Password

@@ -156,6 +156,11 @@ input, select {
 .doctor-map { height: 420px; width: 100%; border-radius: 12px; }
 .doctor-map-label { font-weight: 700; line-height: 1.35; }
 .profile-icon { display: inline-block; margin-right: 6px; }
+.notification-banner { background: var(--green-soft); border-left: 4px solid var(--green); padding: 10px 12px; margin: 14px 0; }
+.notification-banner p { margin: 4px 0 0; }
+.video-call { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.video-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin: 12px 0; }
+.video-grid video { width: 100%; min-height: 120px; background: #102a1d; border-radius: 8px; object-fit: cover; }
 .bottom-nav {
   position: fixed;
   left: 0;

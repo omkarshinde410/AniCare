@@ -90,9 +90,11 @@ See .env.example for the full list.
 
 ## Video consultation architecture
 
-- The app is structured for a WebRTC-based peer-to-peer consultation flow.
-- WebRTC signaling is not hard-coded to a paid platform and is meant to be self-hosted in a production deployment.
-- The app documentation marks the signaling server as an integration point if needed.
+- Approved appointments include a one-to-one WebRTC video call.
+- AniCare provides its own WebSocket signaling endpoint at `/ws/signaling`; it authorizes both participants against the appointment before joining a room.
+- Calls use browser-to-browser WebRTC with Google STUN by default. For reliable connections across carrier-grade NAT, configure a self-hosted Coturn server with `VITE_TURN_URL`, `VITE_TURN_USERNAME`, and `VITE_TURN_CREDENTIAL` at build time.
+- Coturn example: expose UDP/TCP `3478` and TLS `5349`, then set `VITE_TURN_URL="turn:turn.example.com:3478"` in the Render build environment. Never commit the TURN credential.
+- Render supports WebSockets for the AniCare signaling endpoint; Coturn is a separate self-hosted service and does not require a paid video API.
 
 ## Known limitations
 

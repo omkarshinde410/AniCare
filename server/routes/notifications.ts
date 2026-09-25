@@ -12,4 +12,13 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
   return res.json(notifications)
 })
 
+router.patch('/:id/read', requireAuth, async (req: AuthRequest, res) => {
+  const notification = await prisma.notification.updateMany({
+    where: { id: req.params.id, userId: req.user!.userId },
+    data: { read: true },
+  })
+  if (notification.count === 0) return res.status(404).json({ message: 'Notification not found.' })
+  return res.json({ ok: true })
+})
+
 export default router

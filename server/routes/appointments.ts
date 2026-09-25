@@ -50,6 +50,31 @@ router.post('/', requireAuth, requireRole('FARMER'), async (req: AuthRequest, re
     },
   })
 
+  const doctorUser = await prisma.doctorProfile.findUnique({
+    where: { id: appointment.doctorId },
+    select: { userId: true, fullName: true },
+  })
+  if (doctorUser) {
+    await prisma.notification.createMany({
+      data: [
+        {
+          userId: appointment.farmerId,
+          appointmentId: appointment.id,
+          title: 'Appointment request sent',
+          message: `Your appointment request was sent to ${doctorUser.fullName}.`,
+          type: 'APPOINTMENT_REQUESTED',
+        },
+        {
+          userId: doctorUser.userId,
+          appointmentId: appointment.id,
+          title: 'New appointment request',
+          message: `A farmer requested an appointment on ${appointment.date} at ${appointment.startTime}.`,
+          type: 'APPOINTMENT_REQUESTED',
+        },
+      ],
+    })
+  }
+
   return res.status(201).json(appointment)
 })
 
@@ -92,6 +117,16 @@ router.patch('/:id/status', requireAuth, async (req: AuthRequest, res) => {
     const updated = await prisma.appointment.update({
       where: { id: req.params.id },
       data: { status },
+    })
+    const recipientId = req.user!.role === 'DOCTOR' ? appointment.farmerId : appointment.doctor.userId
+    await prisma.notification.create({
+      data: {
+        userId: recipientId,
+        appointmentId: appointment.id,
+        title: `Appointment ${status.toLowerCase()}`,
+        message: `The appointment on ${appointment.date} at ${appointment.startTime} was ${status.toLowerCase()}.`,
+        type: `APPOINTMENT_${status}`,
+      },
     })
     return res.json(updated)
   }
