@@ -31,7 +31,7 @@ function App() {
         <Route path="/farmer/profile" element={<ProfilePage />} />
         <Route path="/doctor" element={<DoctorDashboard />} />
         <Route path="/doctor/appointments" element={<AppointmentsPage />} />
-        <Route path="/doctor/approvals" element={<DoctorApprovalPage />} />
+        <Route path="/doctor/approvals" element={<AppointmentsPage />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/doctor-approvals" element={<DoctorApprovalPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -94,16 +94,17 @@ function downloadDocument(document: any) {
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([])
-  const [role, setRole] = useState('FARMER')
+  const [role] = useState(() => JSON.parse(localStorage.getItem('ani-care-user') ?? '{}').role ?? 'FARMER')
   const [notifications, setNotifications] = useState<any[]>([])
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('ani-care-user') ?? '{}')
-    setRole(user.role ?? 'FARMER')
-
     api.get('/appointments/mine')
       .then((res) => setAppointments(res.data))
-      .catch(() => setAppointments([]))
+      .catch((error) => {
+        setAppointments([])
+        setLoadError(error.response?.data?.message ?? 'Unable to load appointments.')
+      })
     api.get('/notifications')
       .then((res) => setNotifications(res.data))
       .catch(() => setNotifications([]))
@@ -115,10 +116,68 @@ export default function AppointmentsPage() {
     setAppointments(updated.data)
   }
 
+  const requestAppointments = role === 'DOCTOR' ? appointments.filter((appointment) => appointment.status === 'REQUESTED') : []
+  const historyAppointments = role === 'DOCTOR' ? appointments.filter((appointment) => appointment.status !== 'REQUESTED') : appointments
+
+  const renderAppointment = (appointment: any) => (
+    <div key={appointment.id} className="card" style={{ padding: 16 }}>
+      <h3>
+        {role === 'DOCTOR'
+          ? `Farmer: ${appointment.farmer?.fullName ?? 'Farmer'}`
+          : appointment.doctor?.user?.fullName ?? 'Veterinary doctor'}
+      </h3>
+      <p>{appointment.date} • {appointment.startTime} - {appointment.endTime}</p>
+      <p>Reason: {appointment.reason}</p>
+      {role === 'DOCTOR' && <p>Animal: {appointment.animalName ?? appointment.animalType ?? 'Not specified'}</p>}
+      <p>Status: {appointment.status}</p>
+      {role === 'DOCTOR' && <p>Farmer contact: {appointment.farmer?.phone ? <a href={`tel:${appointment.farmer.phone}`}>{appointment.farmer.phone}</a> : 'Not provided'}</p>}
+      {role === 'FARMER' && <p>Doctor contact: {appointment.doctor?.user?.phone ? <a href={`tel:${appointment.doctor.user.phone}`}>{appointment.doctor.user.phone}</a> : 'Not provided'}</p>}
+
+      {role === 'DOCTOR' && appointment.status === 'REQUESTED' && (
+        <div className="actions">
+          <button className="button primary" onClick={() => handleStatus(appointment.id, 'APPROVED')}>Approve</button>
+          <button className="button secondary" onClick={() => handleStatus(appointment.id, 'REJECTED')}>Reject</button>
+        </div>
+      )}
+      {role === 'FARMER' && appointment.status === 'REQUESTED' && (
+        <div className="actions">
+          <button className="button secondary" onClick={() => handleStatus(appointment.id, 'CANCELLED')}>Cancel</button>
+        </div>
+      )}
+      {appointment.status === 'APPROVED' && <VideoCall appointmentId={appointment.id} date={appointment.date} startTime={appointment.startTime} endTime={appointment.endTime} />}
+      {role === 'FARMER' && appointment.medicalDocument && (
+        <div className="document-form">
+          <h3>Medicine document ready</h3>
+          <p>{appointment.medicalDocument.title}</p>
+          <button className="button primary" onClick={() => downloadDocument(appointment.medicalDocument)}>Download PDF</button>
+        </div>
+      )}
+      {role === 'DOCTOR' && appointment.status === 'APPROVED' && (
+        <>
+          <DoctorDocumentForm appointment={appointment} doctorName={JSON.parse(localStorage.getItem('ani-care-user') ?? '{}').fullName ?? 'Veterinary doctor'} />
+          <DoctorPaymentForm appointment={appointment} />
+        </>
+      )}
+      {role === 'FARMER' && appointment.payment?.status === 'PENDING' && (
+        <div className="payment-form">
+          <h3>Payment requested</h3>
+          <p>Amount: {appointment.payment.amount}</p>
+          <p>Free payment demo is enabled. You can also contact the doctor using the number above.</p>
+          <button className="button primary" onClick={async () => {
+            await api.post(`/payments/${appointment.id}/pay`)
+            const updated = await api.get('/appointments/mine')
+            setAppointments(updated.data)
+          }}>Pay using demo</button>
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <main className="page shell">
       <div className="card">
-        <h1>My Appointments</h1>
+        <h1>{role === 'DOCTOR' ? 'Appointment requests and history' : 'My Appointments'}</h1>
+        {loadError && <p className="error">{loadError}</p>}
         {notifications.filter((notification) => !notification.read).slice(0, 3).map((notification) => (
           <div key={notification.id} className="notification-banner">
             <strong>{notification.title}</strong>
@@ -129,61 +188,10 @@ export default function AppointmentsPage() {
           <p>No appointments yet.</p>
         ) : (
           <div className="stack" style={{ marginTop: 18 }}>
-            {appointments.map((appointment) => (
-              <div key={appointment.id} className="card" style={{ padding: 16 }}>
-                <h3>
-                  {role === 'DOCTOR'
-                    ? `Farmer: ${appointment.farmer?.fullName ?? 'Farmer'}`
-                    : appointment.doctor?.user?.fullName ?? 'Veterinary doctor'}
-                </h3>
-                <p>{appointment.date} • {appointment.startTime} - {appointment.endTime}</p>
-                <p>Reason: {appointment.reason}</p>
-                {role === 'DOCTOR' && <p>Animal: {appointment.animalName ?? appointment.animalType ?? 'Not specified'}</p>}
-                <p>Status: {appointment.status}</p>
-                {role === 'DOCTOR' && <p>Farmer contact: {appointment.farmer?.phone ? <a href={`tel:${appointment.farmer.phone}`}>{appointment.farmer.phone}</a> : 'Not provided'}</p>}
-                {role === 'FARMER' && <p>Doctor contact: {appointment.doctor?.user?.phone ? <a href={`tel:${appointment.doctor.user.phone}`}>{appointment.doctor.user.phone}</a> : 'Not provided'}</p>}
-
-                {role === 'DOCTOR' && appointment.status === 'REQUESTED' && (
-                  <div className="actions">
-                    <button className="button primary" onClick={() => handleStatus(appointment.id, 'APPROVED')}>Approve</button>
-                    <button className="button secondary" onClick={() => handleStatus(appointment.id, 'REJECTED')}>Reject</button>
-                  </div>
-                )}
-
-                {role === 'FARMER' && appointment.status === 'REQUESTED' && (
-                  <div className="actions">
-                    <button className="button secondary" onClick={() => handleStatus(appointment.id, 'CANCELLED')}>Cancel</button>
-                  </div>
-                )}
-
-                {appointment.status === 'APPROVED' && <VideoCall appointmentId={appointment.id} date={appointment.date} startTime={appointment.startTime} endTime={appointment.endTime} />}
-                {role === 'FARMER' && appointment.medicalDocument && (
-                  <div className="document-form">
-                    <h3>Medicine document ready</h3>
-                    <p>{appointment.medicalDocument.title}</p>
-                    <button className="button primary" onClick={() => downloadDocument(appointment.medicalDocument)}>Download PDF</button>
-                  </div>
-                )}
-                {role === 'DOCTOR' && appointment.status === 'APPROVED' && (
-                  <>
-                    <DoctorDocumentForm appointment={appointment} doctorName={JSON.parse(localStorage.getItem('ani-care-user') ?? '{}').fullName ?? 'Veterinary doctor'} />
-                    <DoctorPaymentForm appointment={appointment} />
-                  </>
-                )}
-                {role === 'FARMER' && appointment.payment?.status === 'PENDING' && (
-                  <div className="payment-form">
-                    <h3>Payment requested</h3>
-                    <p>Amount: {appointment.payment.amount}</p>
-                    <p>Free payment demo is enabled. You can also contact the doctor using the number above.</p>
-                    <button className="button primary" onClick={async () => {
-                      await api.post(`/payments/${appointment.id}/pay`)
-                      const updated = await api.get('/appointments/mine')
-                      setAppointments(updated.data)
-                    }}>Pay using demo</button>
-                  </div>
-                )}
-              </div>
-            ))}
+            {role === 'DOCTOR' && requestAppointments.length > 0 && <h2>Requests from farmers</h2>}
+            {requestAppointments.map(renderAppointment)}
+            {role === 'DOCTOR' && historyAppointments.length > 0 && <h2>Appointment history</h2>}
+            {historyAppointments.map(renderAppointment)}
           </div>
         )}
       </div>
