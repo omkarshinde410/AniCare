@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../index.js'
 import { requireAuth, requireRole, type AuthRequest } from '../middleware/auth.js'
+import { isAppointmentInWindow } from '../appointmentWindow.js'
 
 const router = Router()
 
@@ -86,7 +87,7 @@ router.get('/mine', requireAuth, async (req: AuthRequest, res) => {
       farmer: true,
       review: true,
       payment: true,
-      medicalDocument: true,
+      medicalDocument: { include: { medicines: true, doctor: { include: { user: true } }, farmer: true } },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -142,7 +143,7 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
       farmer: true,
       payment: true,
       review: true,
-      medicalDocument: true,
+      medicalDocument: { include: { medicines: true, doctor: { include: { user: true } }, farmer: true } },
     },
   })
 
@@ -159,6 +160,14 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
   }
 
   return res.json(appointment)
+})
+
+router.get('/:id/call-access', requireAuth, async (req: AuthRequest, res) => {
+  const appointment = await prisma.appointment.findUnique({ where: { id: req.params.id }, include: { doctor: true } })
+  if (!appointment || (req.user!.role === 'FARMER' && appointment.farmerId !== req.user!.userId) || (req.user!.role === 'DOCTOR' && appointment.doctor.userId !== req.user!.userId)) {
+    return res.status(404).json({ message: 'Appointment not found.' })
+  }
+  return res.json({ allowed: appointment.status === 'APPROVED' && isAppointmentInWindow(appointment.date, appointment.startTime, appointment.endTime) })
 })
 
 export default router

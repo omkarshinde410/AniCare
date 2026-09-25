@@ -11,15 +11,18 @@ const iceServers: RTCIceServer[] = [
   }] : []),
 ]
 
-export default function VideoCall({ appointmentId }: { appointmentId: string }) {
+export default function VideoCall({ appointmentId, date, startTime, endTime }: { appointmentId: string; date: string; startTime: string; endTime: string }) {
   const [active, setActive] = useState(false)
+  const [now, setNow] = useState(() => new Date())
   const [status, setStatus] = useState('Ready for a private video call')
-  const localVideo = useRef<HTMLVideoElement>(null)
   const remoteVideo = useRef<HTMLVideoElement>(null)
   const socket = useRef<WebSocket | null>(null)
   const peer = useRef<RTCPeerConnection | null>(null)
   const localStream = useRef<MediaStream | null>(null)
   const role = useRef<'offerer' | 'answerer' | null>(null)
+  const start = new Date(`${date}T${startTime}`)
+  const end = new Date(`${date}T${endTime}`)
+  const withinWindow = now >= start && now <= end
 
   const sendSignal = (message: object) => socket.current?.send(JSON.stringify(message))
 
@@ -35,7 +38,6 @@ export default function VideoCall({ appointmentId }: { appointmentId: string }) 
       const token = localStorage.getItem('ani-care-token')
       if (!token) throw new Error('Please log in again.')
       localStream.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      if (localVideo.current) localVideo.current.srcObject = localStream.current
       peer.current = new RTCPeerConnection({ iceServers })
       localStream.current.getTracks().forEach((track) => peer.current?.addTrack(track, localStream.current!))
       peer.current.ontrack = (event) => {
@@ -81,7 +83,6 @@ export default function VideoCall({ appointmentId }: { appointmentId: string }) 
     socket.current?.close()
     peer.current?.close()
     localStream.current?.getTracks().forEach((track) => track.stop())
-    if (localVideo.current) localVideo.current.srcObject = null
     if (remoteVideo.current) remoteVideo.current.srcObject = null
     setActive(false)
     setStatus('Call ended')
@@ -89,16 +90,28 @@ export default function VideoCall({ appointmentId }: { appointmentId: string }) 
 
   useEffect(() => () => endCall(), [])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (active && !withinWindow) endCall()
+  }, [active, withinWindow])
+
   return (
     <div className="video-call">
       <p className="muted">{status}</p>
       {!active ? (
+        !withinWindow ? (
+          <p className="muted">Video calling is available only from {startTime} to {endTime} on {date}.</p>
+        ) : (
         <button type="button" className="button primary" onClick={startCall}>Start video call</button>
+        )
       ) : (
         <>
           <div className="video-grid">
             <video ref={remoteVideo} autoPlay playsInline className="remote-video" />
-            <video ref={localVideo} autoPlay muted playsInline className="local-video" />
           </div>
           <button type="button" className="button secondary" onClick={endCall}>End call</button>
         </>

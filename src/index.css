@@ -162,7 +162,6 @@ input, select {
 .video-grid { position: relative; min-height: 260px; margin: 12px 0; background: #102a1d; border-radius: 8px; overflow: hidden; }
 .video-grid video { background: #102a1d; object-fit: cover; }
 .remote-video { width: 100%; height: 260px; }
-.local-video { position: absolute; right: 12px; bottom: 12px; width: 120px; height: 86px; border: 2px solid var(--white); box-shadow: 0 4px 12px var(--shadow); }
 .document-form, .payment-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
 .bottom-nav {
   position: fixed;

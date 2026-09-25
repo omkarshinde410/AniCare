@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { jsPDF } from 'jspdf'
 import { api } from '../api'
 import VideoCall from '../components/VideoCall'
 
@@ -66,6 +67,31 @@ function DoctorPaymentForm({ appointment }: { appointment: any }) {
   )
 }
 
+function downloadDocument(document: any) {
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4' })
+  pdf.setFontSize(18)
+  pdf.text(document.title ?? 'AniCare Medical Document', 40, 60)
+  pdf.setFontSize(11)
+  pdf.text(`Patient: ${document.farmer?.fullName ?? 'Farmer'}`, 40, 95)
+  pdf.text(`Doctor: ${document.doctor?.user?.fullName ?? document.authenticatedBy ?? 'Veterinary doctor'}`, 40, 115)
+  pdf.text(`Date: ${new Date(document.createdAt).toLocaleDateString()}`, 40, 135)
+  const content = document.content ?? document.notes ?? 'Treatment note not provided.'
+  const splitText = pdf.splitTextToSize(content, 500)
+  pdf.text(splitText, 40, 170)
+  let nextY = 190 + splitText.length * 12
+  if (document.medicines?.length) {
+    pdf.text('Medicines:', 40, nextY)
+    nextY += 20
+    document.medicines.forEach((medicine: any, index: number) => {
+      pdf.text(`${medicine.name} - ${medicine.dosage ?? 'As directed'} - ${medicine.frequency ?? ''} - ${medicine.duration ?? ''}`, 40, nextY + index * 18)
+    })
+    nextY += document.medicines.length * 18 + 18
+  }
+  pdf.text(`Authorized by: ${document.authenticatedBy ?? 'Veterinary doctor'}`, 40, nextY)
+  pdf.text(`Signature: ${document.signatureData ?? document.authenticatedBy ?? 'Veterinary doctor'}`, 40, nextY + 18)
+  pdf.save(`${(document.title ?? 'medical-document').replace(/\s+/g, '-').toLowerCase()}.pdf`)
+}
+
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [role, setRole] = useState('FARMER')
@@ -130,7 +156,14 @@ export default function AppointmentsPage() {
                   </div>
                 )}
 
-                {appointment.status === 'APPROVED' && <VideoCall appointmentId={appointment.id} />}
+                {appointment.status === 'APPROVED' && <VideoCall appointmentId={appointment.id} date={appointment.date} startTime={appointment.startTime} endTime={appointment.endTime} />}
+                {role === 'FARMER' && appointment.medicalDocument && (
+                  <div className="document-form">
+                    <h3>Medicine document ready</h3>
+                    <p>{appointment.medicalDocument.title}</p>
+                    <button className="button primary" onClick={() => downloadDocument(appointment.medicalDocument)}>Download PDF</button>
+                  </div>
+                )}
                 {role === 'DOCTOR' && appointment.status === 'APPROVED' && (
                   <>
                     <DoctorDocumentForm appointment={appointment} doctorName={JSON.parse(localStorage.getItem('ani-care-user') ?? '{}').fullName ?? 'Veterinary doctor'} />

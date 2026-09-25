@@ -2,6 +2,7 @@ import type { Server as HttpServer } from 'node:http'
 import type { PrismaClient } from '@prisma/client'
 import jwt from 'jsonwebtoken'
 import { WebSocketServer, WebSocket } from 'ws'
+import { isAppointmentInWindow } from './appointmentWindow.js'
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret'
 type SignalingSocket = WebSocket & { roomId?: string; userId?: string }
@@ -35,7 +36,7 @@ export function attachSignaling(server: HttpServer, prisma: PrismaClient) {
       where: { id: appointmentId },
       include: { doctor: true },
     }).then((appointment) => {
-      if (!appointment || (appointment.farmerId !== userId && appointment.doctor.userId !== userId)) {
+      if (!appointment || appointment.status !== 'APPROVED' || !isAppointmentInWindow(appointment.date, appointment.startTime, appointment.endTime) || (appointment.farmerId !== userId && appointment.doctor.userId !== userId)) {
         socket.close(1008, 'You are not part of this appointment')
         return
       }
