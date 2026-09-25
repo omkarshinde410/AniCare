@@ -20,11 +20,19 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
   const peer = useRef<RTCPeerConnection | null>(null)
   const localStream = useRef<MediaStream | null>(null)
   const role = useRef<'offerer' | 'answerer' | null>(null)
+  const pendingSignals = useRef<object[]>([])
+  const pendingCandidates = useRef<RTCIceCandidateInit[]>([])
   const start = new Date(`${date}T${startTime}`)
   const end = new Date(`${date}T${endTime}`)
   const withinWindow = now >= start && now <= end
 
-  const sendSignal = (message: object) => socket.current?.send(JSON.stringify(message))
+  const sendSignal = (message: object) => {
+    if (!socket.current || socket.current.readyState !== WebSocket.OPEN) {
+      pendingSignals.current.push(message)
+      return
+    }
+    socket.current.send(JSON.stringify(message))
+  }
 
   const createOffer = async () => {
     if (!peer.current) return
@@ -41,7 +49,10 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
       peer.current = new RTCPeerConnection({ iceServers })
       localStream.current.getTracks().forEach((track) => peer.current?.addTrack(track, localStream.current!))
       peer.current.ontrack = (event) => {
-        if (remoteVideo.current) remoteVideo.current.srcObject = event.streams[0]
+        if (!remoteVideo.current) return
+        const stream = event.streams[0] ?? new MediaStream([event.track])
+        remoteVideo.current.srcObject = stream
+        void remoteVideo.current.play().catch(() => undefined)
       }
       peer.current.onicecandidate = (event) => {
         if (event.candidate) sendSignal({ type: 'candidate', data: event.candidate.toJSON() })
@@ -50,26 +61,43 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
       socket.current = new WebSocket(`${protocol}//${window.location.host}/ws/signaling?appointmentId=${encodeURIComponent(appointmentId)}&token=${encodeURIComponent(token)}`)
-      socket.current.onopen = () => setStatus('Waiting for the other participant...')
-      socket.current.onmessage = async (event) => {
-        const message = JSON.parse(event.data) as SignalMessage
-        if (message.type === 'role') {
-          role.current = message.role ?? null
-          setStatus(message.role === 'offerer' ? 'Waiting for the other participant...' : 'Connected, establishing video...')
-        }
-        if (message.type === 'peer-ready' && role.current === 'offerer') await createOffer()
-        if (message.type === 'offer' && message.data) {
-          await peer.current?.setRemoteDescription(message.data as RTCSessionDescriptionInit)
-          const answer = await peer.current?.createAnswer()
-          if (answer && peer.current) {
-            await peer.current.setLocalDescription(answer)
-            sendSignal({ type: 'answer', data: answer })
-          }
-        }
-        if (message.type === 'answer' && message.data) await peer.current?.setRemoteDescription(message.data as RTCSessionDescriptionInit)
-        if (message.type === 'candidate' && message.data) await peer.current?.addIceCandidate(message.data as RTCIceCandidateInit)
-        if (message.type === 'peer-left') setStatus('The other participant left the call.')
+      socket.current.onopen = () => {
+        setStatus('Waiting for the other participant...')
+        pendingSignals.current.splice(0).forEach((message) => sendSignal(message))
       }
+      socket.current.onmessage = async (event) => {
+        try {
+          const message = JSON.parse(event.data) as SignalMessage
+          if (message.type === 'role') {
+            role.current = message.role ?? null
+            setStatus(message.role === 'offerer' ? 'Waiting for the other participant...' : 'Connected, establishing video...')
+          }
+          if (message.type === 'peer-ready' && role.current === 'offerer') await createOffer()
+          if (message.type === 'offer' && message.data) {
+            await peer.current?.setRemoteDescription(message.data as RTCSessionDescriptionInit)
+            const answer = await peer.current?.createAnswer()
+            if (answer && peer.current) {
+              await peer.current.setLocalDescription(answer)
+              sendSignal({ type: 'answer', data: answer })
+            }
+            const candidates = pendingCandidates.current.splice(0)
+            await Promise.all(candidates.map((candidate) => peer.current?.addIceCandidate(candidate)))
+          }
+          if (message.type === 'answer' && message.data) {
+            await peer.current?.setRemoteDescription(message.data as RTCSessionDescriptionInit)
+            const candidates = pendingCandidates.current.splice(0)
+            await Promise.all(candidates.map((candidate) => peer.current?.addIceCandidate(candidate)))
+          }
+          if (message.type === 'candidate' && message.data) {
+            if (peer.current?.remoteDescription) await peer.current.addIceCandidate(message.data as RTCIceCandidateInit)
+            else pendingCandidates.current.push(message.data as RTCIceCandidateInit)
+          }
+          if (message.type === 'peer-left') setStatus('The other participant left the call.')
+        } catch {
+          setStatus('Unable to establish the video connection. Please try again.')
+        }
+      }
+      socket.current.onerror = () => setStatus('Video signaling connection failed.')
       socket.current.onclose = () => setStatus('Call ended')
       setActive(true)
     } catch (error) {
