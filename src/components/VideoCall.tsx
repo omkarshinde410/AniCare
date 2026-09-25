@@ -38,11 +38,27 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
     socket.current.send(JSON.stringify(message))
   }
 
+  const waitForIceGathering = async () => {
+    const connection = peer.current
+    if (!connection || connection.iceGatheringState === 'complete') return
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        if (connection.iceGatheringState === 'complete') {
+          connection.removeEventListener('icegatheringstatechange', check)
+          resolve()
+        }
+      }
+      connection.addEventListener('icegatheringstatechange', check)
+      window.setTimeout(check, 8000)
+    })
+  }
+
   const createOffer = async () => {
     if (!peer.current) return
     const offer = await peer.current.createOffer()
     await peer.current.setLocalDescription(offer)
-    sendSignal({ type: 'offer', data: offer })
+    await waitForIceGathering()
+    sendSignal({ type: 'offer', data: peer.current.localDescription })
   }
 
   const startCall = async () => {
@@ -91,18 +107,25 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
             const answer = await peer.current?.createAnswer()
             if (answer && peer.current) {
               await peer.current.setLocalDescription(answer)
-              sendSignal({ type: 'answer', data: answer })
+              await waitForIceGathering()
+              sendSignal({ type: 'answer', data: peer.current.localDescription })
             }
             const candidates = pendingCandidates.current.splice(0)
-            await Promise.all(candidates.map((candidate) => peer.current?.addIceCandidate(candidate)))
+            await Promise.all(candidates.map(async (candidate) => {
+              try { await peer.current?.addIceCandidate(candidate) } catch { }
+            }))
           }
           if (message.type === 'answer' && message.data) {
             await peer.current?.setRemoteDescription(message.data as RTCSessionDescriptionInit)
             const candidates = pendingCandidates.current.splice(0)
-            await Promise.all(candidates.map((candidate) => peer.current?.addIceCandidate(candidate)))
+            await Promise.all(candidates.map(async (candidate) => {
+              try { await peer.current?.addIceCandidate(candidate) } catch { }
+            }))
           }
           if (message.type === 'candidate' && message.data) {
-            if (peer.current?.remoteDescription) await peer.current.addIceCandidate(message.data as RTCIceCandidateInit)
+            if (peer.current?.remoteDescription) {
+              try { await peer.current.addIceCandidate(message.data as RTCIceCandidateInit) } catch { }
+            }
             else pendingCandidates.current.push(message.data as RTCIceCandidateInit)
           }
           if (message.type === 'peer-left') setStatus('The other participant left the call.')
