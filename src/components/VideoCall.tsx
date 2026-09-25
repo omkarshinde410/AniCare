@@ -18,6 +18,7 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
   const [now, setNow] = useState(() => new Date())
   const [status, setStatus] = useState('Ready for a private video call')
   const remoteVideo = useRef<HTMLVideoElement>(null)
+  const localVideo = useRef<HTMLVideoElement>(null)
   const remoteStream = useRef<MediaStream | null>(null)
   const socket = useRef<WebSocket | null>(null)
   const peer = useRef<RTCPeerConnection | null>(null)
@@ -49,6 +50,7 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
       const token = localStorage.getItem('ani-care-token')
       if (!token) throw new Error('Please log in again.')
       localStream.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      if (localVideo.current) localVideo.current.srcObject = localStream.current
       peer.current = new RTCPeerConnection({ iceServers })
       localStream.current.getTracks().forEach((track) => peer.current?.addTrack(track, localStream.current!))
       peer.current.ontrack = (event) => {
@@ -122,6 +124,7 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
     socket.current?.close()
     peer.current?.close()
     localStream.current?.getTracks().forEach((track) => track.stop())
+    if (localVideo.current) localVideo.current.srcObject = null
     if (remoteVideo.current) remoteVideo.current.srcObject = null
     remoteStream.current = null
     setActive(false)
@@ -159,6 +162,7 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
         <>
           <div className="video-grid">
             <video ref={remoteVideo} autoPlay playsInline onLoadedMetadata={(event) => void event.currentTarget.play().catch(() => undefined)} className="remote-video" />
+            <video ref={localVideo} autoPlay muted playsInline className="local-video" />
           </div>
           <button type="button" className="button secondary" onClick={endCall}>End call</button>
         </>
