@@ -29,6 +29,16 @@ router.post('/request', requireAuth, requireRole('DOCTOR'), async (req: AuthRequ
     create: { appointmentId, amount, reason, status: 'PENDING' },
   })
 
+  await prisma.notification.create({
+    data: {
+      userId: appointment.farmerId,
+      appointmentId: appointment.id,
+      title: 'Payment requested',
+      message: `Your veterinarian requested a payment of ${amount}.`,
+      type: 'PAYMENT_REQUESTED',
+    },
+  })
+
   return res.json(payment)
 })
 
@@ -53,6 +63,19 @@ router.post('/:appointmentId/pay', requireAuth, requireRole('FARMER'), async (re
     where: { id: appointment.id },
     data: { paymentStatus: 'PAID' },
   })
+
+  const doctor = await prisma.doctorProfile.findUnique({ where: { id: appointment.doctorId }, select: { userId: true } })
+  if (doctor) {
+    await prisma.notification.create({
+      data: {
+        userId: doctor.userId,
+        appointmentId: appointment.id,
+        title: 'Payment received',
+        message: 'The farmer marked the appointment payment as completed.',
+        type: 'PAYMENT_RECEIVED',
+      },
+    })
+  }
 
   return res.json({ payment, demo: true, message: 'Mock payment completed successfully.' })
 })

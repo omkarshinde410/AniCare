@@ -2,6 +2,70 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import VideoCall from '../components/VideoCall'
 
+function DoctorDocumentForm({ appointment, doctorName }: { appointment: any; doctorName: string }) {
+  const [title, setTitle] = useState('Medicine instructions')
+  const [content, setContent] = useState('')
+  const [signature, setSignature] = useState(doctorName)
+  const [medicine, setMedicine] = useState({ name: '', dosage: '', frequency: '', duration: '' })
+  const [message, setMessage] = useState('')
+
+  const saveDocument = async (event: React.FormEvent) => {
+    event.preventDefault()
+    try {
+      await api.post('/documents', {
+        appointmentId: appointment.id,
+        title,
+        content,
+        authenticatedBy: doctorName,
+        signatureData: signature,
+        medicines: medicine.name ? [medicine] : [],
+      })
+      setMessage('Authorized document created. The farmer can download it now.')
+    } catch (error: any) {
+      setMessage(error.response?.data?.message ?? 'Unable to create the document.')
+    }
+  }
+
+  return (
+    <form className="document-form stack" onSubmit={saveDocument}>
+      <h3>Medicine document</h3>
+      <label>Document title<input value={title} onChange={(event) => setTitle(event.target.value)} required /></label>
+      <label>Instructions<textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Write diagnosis and medicine instructions" /></label>
+      <label>Medicine name<input value={medicine.name} onChange={(event) => setMedicine({ ...medicine, name: event.target.value })} /></label>
+      <label>Dosage<input value={medicine.dosage} onChange={(event) => setMedicine({ ...medicine, dosage: event.target.value })} /></label>
+      <label>Frequency<input value={medicine.frequency} onChange={(event) => setMedicine({ ...medicine, frequency: event.target.value })} /></label>
+      <label>Duration<input value={medicine.duration} onChange={(event) => setMedicine({ ...medicine, duration: event.target.value })} /></label>
+      <label>Signature name<input value={signature} onChange={(event) => setSignature(event.target.value)} required /></label>
+      {message && <p className="success">{message}</p>}
+      <button className="button primary" type="submit">Authorize document</button>
+    </form>
+  )
+}
+
+function DoctorPaymentForm({ appointment }: { appointment: any }) {
+  const [amount, setAmount] = useState('')
+  const [reason, setReason] = useState('Consultation fee')
+  const [message, setMessage] = useState('')
+  const requestPayment = async (event: React.FormEvent) => {
+    event.preventDefault()
+    try {
+      await api.post('/payments/request', { appointmentId: appointment.id, amount, reason })
+      setMessage('Fee request sent to the farmer.')
+    } catch (error: any) {
+      setMessage(error.response?.data?.message ?? 'Unable to request payment.')
+    }
+  }
+  return (
+    <form className="payment-form stack" onSubmit={requestPayment}>
+      <h3>Request a fee</h3>
+      <label>Amount<input type="number" min="1" value={amount} onChange={(event) => setAmount(event.target.value)} required /></label>
+      <label>Reason<input value={reason} onChange={(event) => setReason(event.target.value)} required /></label>
+      {message && <p className="success">{message}</p>}
+      <button className="button secondary" type="submit">Send fee request</button>
+    </form>
+  )
+}
+
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [role, setRole] = useState('FARMER')
@@ -67,6 +131,24 @@ export default function AppointmentsPage() {
                 )}
 
                 {appointment.status === 'APPROVED' && <VideoCall appointmentId={appointment.id} />}
+                {role === 'DOCTOR' && appointment.status === 'APPROVED' && (
+                  <>
+                    <DoctorDocumentForm appointment={appointment} doctorName={JSON.parse(localStorage.getItem('ani-care-user') ?? '{}').fullName ?? 'Veterinary doctor'} />
+                    <DoctorPaymentForm appointment={appointment} />
+                  </>
+                )}
+                {role === 'FARMER' && appointment.payment?.status === 'PENDING' && (
+                  <div className="payment-form">
+                    <h3>Payment requested</h3>
+                    <p>Amount: {appointment.payment.amount}</p>
+                    <p>Free payment demo is enabled. You can also contact the doctor using the number above.</p>
+                    <button className="button primary" onClick={async () => {
+                      await api.post(`/payments/${appointment.id}/pay`)
+                      const updated = await api.get('/appointments/mine')
+                      setAppointments(updated.data)
+                    }}>Pay using demo</button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

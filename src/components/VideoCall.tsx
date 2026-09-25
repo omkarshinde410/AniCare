@@ -19,6 +19,7 @@ export default function VideoCall({ appointmentId }: { appointmentId: string }) 
   const socket = useRef<WebSocket | null>(null)
   const peer = useRef<RTCPeerConnection | null>(null)
   const localStream = useRef<MediaStream | null>(null)
+  const role = useRef<'offerer' | 'answerer' | null>(null)
 
   const sendSignal = (message: object) => socket.current?.send(JSON.stringify(message))
 
@@ -50,8 +51,11 @@ export default function VideoCall({ appointmentId }: { appointmentId: string }) 
       socket.current.onopen = () => setStatus('Waiting for the other participant...')
       socket.current.onmessage = async (event) => {
         const message = JSON.parse(event.data) as SignalMessage
-        if (message.type === 'role') setStatus(message.role === 'offerer' ? 'Waiting for the other participant...' : 'Connected, establishing video...')
-        if (message.type === 'peer-ready' && message.role !== 'answerer') await createOffer()
+        if (message.type === 'role') {
+          role.current = message.role ?? null
+          setStatus(message.role === 'offerer' ? 'Waiting for the other participant...' : 'Connected, establishing video...')
+        }
+        if (message.type === 'peer-ready' && role.current === 'offerer') await createOffer()
         if (message.type === 'offer' && message.data) {
           await peer.current?.setRemoteDescription(message.data as RTCSessionDescriptionInit)
           const answer = await peer.current?.createAnswer()

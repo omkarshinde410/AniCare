@@ -28,7 +28,7 @@ router.post('/', requireAuth, requireRole('DOCTOR'), async (req: AuthRequest, re
   }
 
   const appointment = await prisma.appointment.findUnique({ where: { id: parsed.data.appointmentId } })
-  if (!appointment || appointment.doctorId !== (await prisma.doctorProfile.findUnique({ where: { userId: req.user!.userId } }))?.id) {
+  if (!appointment || appointment.status !== 'APPROVED' || appointment.doctorId !== (await prisma.doctorProfile.findUnique({ where: { userId: req.user!.userId } }))?.id) {
     return res.status(403).json({ message: 'You can only create documents for your own appointments.' })
   }
 
@@ -50,13 +50,23 @@ router.post('/', requireAuth, requireRole('DOCTOR'), async (req: AuthRequest, re
     include: { medicines: true },
   })
 
+  await prisma.notification.create({
+    data: {
+      userId: appointment.farmerId,
+      appointmentId: appointment.id,
+      title: 'New medicine document available',
+      message: 'Your veterinarian authorized a medicine document for this appointment.',
+      type: 'MEDICAL_DOCUMENT_READY',
+    },
+  })
+
   return res.status(201).json(document)
 })
 
 router.get('/my', requireAuth, async (req: AuthRequest, res) => {
   const documents = await prisma.medicalDocument.findMany({
     where: req.user!.role === 'FARMER' ? { farmerId: req.user!.userId } : { doctorId: (await prisma.doctorProfile.findUnique({ where: { userId: req.user!.userId } }))?.id ?? '' },
-    include: { medicines: true, appointment: true },
+    include: { medicines: true, appointment: true, doctor: { include: { user: true } }, farmer: true },
   })
   return res.json(documents)
 })
