@@ -16,21 +16,27 @@ export default function DocumentsPage() {
     pdf.setFontSize(18)
     pdf.text(document.title ?? 'AniCare Medical Document', 40, 60)
     pdf.setFontSize(11)
-    pdf.text(`Patient: ${document.farmerId ?? 'Farmer'}`, 40, 95)
-    pdf.text(`Doctor: ${document.doctorId ?? 'Veterinary doctor'}`, 40, 115)
+    pdf.text(`Patient: ${document.farmer?.fullName ?? 'Farmer'}`, 40, 95)
+    pdf.text(`Doctor: ${document.doctor?.user?.fullName ?? document.authenticatedBy ?? 'Veterinary doctor'}`, 40, 115)
     pdf.text(`Date: ${new Date(document.createdAt).toLocaleDateString()}`, 40, 135)
 
     const content = document.content ?? document.notes ?? 'Treatment note not provided.'
     const splitText = pdf.splitTextToSize(content, 500)
     pdf.text(splitText, 40, 170)
+    let nextY = 190 + splitText.length * 12
 
     if (Array.isArray(document.medicines) && document.medicines.length > 0) {
-      pdf.text('Medicines:', 40, 210 + splitText.length * 12)
+      pdf.text('Medicines:', 40, nextY)
+      nextY += 20
       document.medicines.forEach((medicine: any, index: number) => {
-        const offset = 230 + splitText.length * 12 + index * 18
+        const offset = nextY + index * 18
         pdf.text(`• ${medicine.name} - ${medicine.dosage ?? 'As directed'} - ${medicine.frequency ?? ''}`, 40, offset)
       })
+      nextY += document.medicines.length * 18 + 18
     }
+
+    pdf.text(`Authorized by: ${document.authenticatedBy ?? 'Veterinary doctor'}`, 40, nextY)
+    pdf.text(`Signature: ${document.signatureData ?? document.authenticatedBy ?? 'Veterinary doctor'}`, 40, nextY + 18)
 
     pdf.save(`${(document.title ?? 'medical-document').replace(/\s+/g, '-').toLowerCase()}.pdf`)
   }
@@ -47,6 +53,7 @@ export default function DocumentsPage() {
               <div key={document.id} className="card" style={{ padding: 16 }}>
                 <h3>{document.title}</h3>
                 <p>{document.notes ?? 'Treatment note available'}</p>
+                <p>Authorized by: {document.authenticatedBy ?? 'Veterinary doctor'}</p>
                 <p>{new Date(document.createdAt).toLocaleDateString()}</p>
                 <button className="button primary" onClick={() => handleDownload(document)}>Download PDF</button>
               </div>
