@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-type SignalMessage = { type: string; role?: 'offerer' | 'answerer'; data?: unknown }
+type SignalMessage = { type: string; role?: 'offerer' | 'answerer'; participants?: number; data?: unknown; message?: string }
 
 const iceServers: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -55,10 +55,12 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
 
   const createOffer = async () => {
     if (!peer.current) return
+    setStatus('Connecting to the other participant...')
     const offer = await peer.current.createOffer()
     await peer.current.setLocalDescription(offer)
     await waitForIceGathering()
     sendSignal({ type: 'offer', data: peer.current.localDescription })
+    setStatus('Offer sent. Negotiating video connection...')
   }
 
   const startCall = async () => {
@@ -81,11 +83,15 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
       }
       peer.current.onconnectionstatechange = () => {
         const state = peer.current?.connectionState ?? 'connecting'
-        setStatus(state === 'connected' ? 'Call connected' : `Call ${state}`)
+        if (state === 'connected') setStatus('Call connected')
+        else if (state === 'failed') setStatus('Peer connection failed. A TURN relay is required on this network.')
+        else if (state === 'disconnected') setStatus('Connection interrupted. Trying to reconnect...')
+        else setStatus(`Call ${state}`)
       }
       peer.current.oniceconnectionstatechange = () => {
         const state = peer.current?.iceConnectionState
-        if (state === 'failed' || state === 'disconnected') setStatus('Network connection failed. A TURN server may be required.')
+        if (state === 'failed') setStatus('Network path failed. Configure a reachable Coturn TURN relay to connect these networks.')
+        else if (state === 'disconnected') setStatus('Network connection interrupted. Reconnecting...')
       }
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -99,8 +105,9 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
           const message = JSON.parse(event.data) as SignalMessage
           if (message.type === 'role') {
             role.current = message.role ?? null
-            setStatus(message.role === 'offerer' ? 'Waiting for the other participant...' : 'Connected, establishing video...')
+            setStatus(message.participants === 2 ? 'Both participants joined. Establishing video...' : 'Waiting for the other participant...')
           }
+          if (message.type === 'joined') setStatus(message.participants === 2 ? 'Both participants joined. Establishing video...' : 'Waiting for the other participant...')
           if (message.type === 'peer-ready' && role.current === 'offerer') await createOffer()
           if (message.type === 'offer' && message.data) {
             await peer.current?.setRemoteDescription(message.data as RTCSessionDescriptionInit)
@@ -134,7 +141,10 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
         }
       }
       socket.current.onerror = () => setStatus('Video signaling connection failed.')
-      socket.current.onclose = () => setStatus('Call ended')
+      socket.current.onclose = (event) => {
+        if (event.code !== 1000 && event.reason) setStatus(`Signaling closed: ${event.reason}`)
+        else setStatus('Call ended')
+      }
       setActive(true)
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Camera and microphone access is required.')

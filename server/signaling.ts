@@ -52,7 +52,8 @@ export function attachSignaling(server: HttpServer, prisma: PrismaClient) {
       room.add(socket)
       rooms.set(appointmentId, room)
       const role = room.size === 1 ? 'offerer' : 'answerer'
-      socket.send(JSON.stringify({ type: 'role', role }))
+      socket.send(JSON.stringify({ type: 'role', role, participants: room.size }))
+      socket.send(JSON.stringify({ type: 'joined', participants: room.size }))
       if (room.size === 2) broadcast(room, socket, { type: 'peer-ready' })
       if (room.size === 2) socket.send(JSON.stringify({ type: 'peer-ready' }))
 
