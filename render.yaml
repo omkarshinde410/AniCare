@@ -16,6 +16,8 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: APPOINTMENT_UTC_OFFSET
+        value: "+05:30"
       - key: CLIENT_URL
         value: https://anicare-6hp2.onrender.com
       - key: VITE_API_URL
