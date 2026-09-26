@@ -60,14 +60,15 @@ export default function FindDoctorsPage() {
   return (
     <main className="page shell">
       <header className="topbar">
-        <div className="brand">AniCare</div>
+        <div><div className="brand">AniCare</div><span className="workspace-caption">FIND A VETERINARIAN</span></div>
       </header>
 
-      <section className="card">
-        <h1>Find Doctors</h1>
-        <p className="muted">{locationMessage}</p>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or specialization" />
+      <section className="finder-heading">
+        <div><p className="section-kicker">LOCAL VETERINARY CARE</p><h1>Find the right vet.</h1><p>Nearby approved doctors appear automatically. Search is optional.</p></div>
+        <span className="location-chip">⌖ {locationMessage}</span>
       </section>
+
+      <label className="doctor-search"><span aria-hidden="true">⌕</span><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter by doctor name or specialty" /><kbd>OPTIONAL</kbd></label>
 
       <section className="card map-card">
         <MapContainer center={location} zoom={5} scrollWheelZoom className="doctor-map">
@@ -106,8 +107,9 @@ export default function FindDoctorsPage() {
       </section>
 
       <section className="stack">
+        <div className="section-heading result-heading"><div><p className="section-kicker">VERIFIED NEARBY</p><h2>Veterinarians <span className="result-count">{loading ? '…' : doctors.length}</span></h2></div></div>
         {loading ? <div className="card empty-state">Finding nearby veterinary doctors...</div> : doctors.length === 0 ? <div className="card empty-state">No nearby veterinary doctors found.</div> : doctors.map((doctor) => (
-          <div key={doctor.id} className="card doctor-card">
+          <div key={doctor.id} className="card doctor-card finder-doctor-card">
             <div className="doctor-header">
               <div>
                 <h3><span className="profile-icon" aria-hidden="true">👤</span>{doctor.fullName}</h3>
