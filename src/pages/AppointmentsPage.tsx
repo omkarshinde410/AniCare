@@ -102,7 +102,6 @@ function downloadDocument(document: any) {
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [role] = useState(() => JSON.parse(localStorage.getItem('ani-care-user') ?? '{}').role ?? 'FARMER')
-  const [notifications, setNotifications] = useState<any[]>([])
   const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
@@ -112,9 +111,6 @@ export default function AppointmentsPage() {
         setAppointments([])
         setLoadError(error.response?.data?.message ?? 'Unable to load appointments.')
       })
-    api.get('/notifications')
-      .then((res) => setNotifications(res.data))
-      .catch(() => setNotifications([]))
   }, [])
 
   const handleStatus = async (id: string, status: 'APPROVED' | 'REJECTED' | 'CANCELLED') => {
@@ -188,12 +184,6 @@ export default function AppointmentsPage() {
       <div className="card">
         <h1>{role === 'DOCTOR' ? 'Appointment requests and history' : 'My Appointments'}</h1>
         {loadError && <p className="error">{loadError}</p>}
-        {notifications.filter((notification) => !notification.read).slice(0, 3).map((notification) => (
-          <div key={notification.id} className="notification-banner">
-            <strong>{notification.title}</strong>
-            <p>{notification.message}</p>
-          </div>
-        ))}
         {appointments.length === 0 ? (
           <p>No appointments yet.</p>
         ) : (

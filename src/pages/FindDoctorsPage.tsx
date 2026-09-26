@@ -73,8 +73,8 @@ export default function FindDoctorsPage() {
         <MapContainer center={location} zoom={5} scrollWheelZoom className="doctor-map">
           <MapViewport location={location} />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/">Humanitarian OpenStreetMap Team</a>'
+            url="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
           />
           <CircleMarker center={location} pathOptions={{ color: '#145638', fillColor: '#1f7a4d', fillOpacity: 0.9 }} radius={9}>
             <Popup>Your location</Popup>

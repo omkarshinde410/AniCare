@@ -158,6 +158,16 @@ input, select {
 .profile-icon { display: inline-block; margin-right: 6px; }
 .notification-banner { background: var(--green-soft); border-left: 4px solid var(--green); padding: 10px 12px; margin: 14px 0; }
 .notification-banner p { margin: 4px 0 0; }
+.notification-toasts { position: fixed; z-index: 2000; top: 16px; right: 16px; display: grid; gap: 10px; width: min(380px, calc(100vw - 32px)); }
+.notification-toast { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 14px 16px; background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--green); border-radius: 8px; box-shadow: 0 8px 28px var(--shadow); animation: toast-in 180ms ease-out; }
+.notification-toast p { margin: 4px 0 0; color: var(--muted); }
+.notification-toast button { border: 0; background: transparent; color: var(--muted); font-size: 1.2rem; cursor: pointer; }
+.notification-list { display: grid; gap: 12px; margin-top: 18px; }
+.notification-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; background: var(--green-soft); border-left: 4px solid var(--green); }
+.notification-item.is-read { background: #f8faf8; border-left-color: #a9b8ae; }
+.notification-item p { margin: 5px 0; }
+.notification-item time { color: var(--muted); font-size: 0.85rem; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 .video-call { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
 .video-grid { position: relative; min-height: 260px; margin: 12px 0; background: #102a1d; border-radius: 8px; overflow: hidden; }
 .video-grid video { background: #102a1d; object-fit: cover; }
@@ -192,6 +202,7 @@ input, select {
 .doctor-bottom-nav {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.farmer-bottom-nav { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .mini-card {
   background: var(--green-soft);
   border-radius: 14px;
@@ -206,4 +217,7 @@ input, select {
   .hero, .three-up, .two-up { grid-template-columns: 1fr; }
   .nav { display: none; }
   .page { padding-bottom: 100px; }
+  .bottom-nav { gap: 2px; padding-left: 5px; padding-right: 5px; }
+  .bottom-nav a { font-size: 0.65rem; padding: 8px 2px; }
+  .notification-item { align-items: flex-start; flex-direction: column; }
 }
