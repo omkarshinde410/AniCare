@@ -45,14 +45,6 @@ export default function FarmerDashboard() {
         </div>
       </section>
 
-      <nav className="bottom-nav">
-        <Link to="/farmer">Home</Link>
-        <Link to="/farmer/doctors">Doctors</Link>
-        <Link to="/farmer/appointments">Appointments</Link>
-        <Link to="/farmer/alerts">Alerts</Link>
-        <Link to="/farmer/documents">Documents</Link>
-        <Link to="/farmer/profile">Profile</Link>
-      </nav>
     </main>
   )
 }
