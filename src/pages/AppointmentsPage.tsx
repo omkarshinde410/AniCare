@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { jsPDF } from 'jspdf'
 import { api } from '../api'
 import VideoCall from '../components/VideoCall'
@@ -108,6 +109,10 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [role] = useState(() => JSON.parse(localStorage.getItem('ani-care-user') ?? '{}').role ?? 'FARMER')
   const [loadError, setLoadError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('ALL')
+  const [actionError, setActionError] = useState('')
+  const [busyId, setBusyId] = useState('')
 
   useEffect(() => {
     api.get('/appointments/mine')
@@ -116,16 +121,33 @@ export default function AppointmentsPage() {
         setAppointments([])
         setLoadError(error.response?.data?.message ?? 'Unable to load appointments.')
       })
+      .finally(() => setLoading(false))
   }, [])
 
   const handleStatus = async (id: string, status: 'APPROVED' | 'REJECTED' | 'CANCELLED') => {
-    await api.patch(`/appointments/${id}/status`, { status })
-    const updated = await api.get('/appointments/mine')
-    setAppointments(updated.data)
+    setBusyId(id)
+    setActionError('')
+    try {
+      await api.patch(`/appointments/${id}/status`, { status })
+      const updated = await api.get('/appointments/mine')
+      setAppointments(updated.data)
+    } catch (error: any) {
+      setActionError(error.response?.data?.message ?? 'Unable to update this appointment.')
+    } finally {
+      setBusyId('')
+    }
   }
 
   const requestAppointments = role === 'DOCTOR' ? appointments.filter((appointment) => appointment.status === 'REQUESTED') : []
   const historyAppointments = role === 'DOCTOR' ? appointments.filter((appointment) => appointment.status !== 'REQUESTED') : appointments
+  const now = new Date()
+  const isUpcoming = (appointment: any) => ['REQUESTED', 'APPROVED'].includes(appointment.status) && new Date(`${appointment.date}T${appointment.endTime}`) >= now
+  const upcomingCount = appointments.filter(isUpcoming).length
+  const pastCount = appointments.filter((appointment) => isAppointmentPast(appointment)).length
+  const pendingCount = appointments.filter((appointment) => appointment.status === 'REQUESTED').length
+  const filteredRequests = requestAppointments.filter((appointment) => filter === 'ALL' || filter === 'REQUESTS' || (filter === 'UPCOMING' && isUpcoming(appointment)))
+  const filteredHistory = historyAppointments.filter((appointment) => filter === 'ALL' || filter === 'HISTORY' || (filter === 'UPCOMING' && isUpcoming(appointment)) || (filter === 'PAST' && isAppointmentPast(appointment)))
+  const filteredFarmerAppointments = appointments.filter((appointment) => filter === 'ALL' || (filter === 'UPCOMING' && isUpcoming(appointment)) || (filter === 'PAST' && isAppointmentPast(appointment)) || (filter === 'REQUESTED' && appointment.status === 'REQUESTED'))
 
   const renderAppointment = (appointment: any) => (
     <div key={appointment.id} className={`card appointment-card ${isAppointmentPast(appointment) ? 'appointment-past' : 'appointment-current'}`}>
@@ -148,13 +170,13 @@ export default function AppointmentsPage() {
 
       {role === 'DOCTOR' && appointment.status === 'REQUESTED' && (
         <div className="actions">
-          <button className="button primary" onClick={() => handleStatus(appointment.id, 'APPROVED')}>Approve</button>
-          <button className="button secondary" onClick={() => handleStatus(appointment.id, 'REJECTED')}>Reject</button>
+          <button className="button primary" disabled={busyId === appointment.id} onClick={() => handleStatus(appointment.id, 'APPROVED')}>{busyId === appointment.id ? 'Updating…' : 'Approve appointment'}</button>
+          <button className="button secondary" disabled={busyId === appointment.id} onClick={() => handleStatus(appointment.id, 'REJECTED')}>Decline</button>
         </div>
       )}
       {role === 'FARMER' && appointment.status === 'REQUESTED' && (
         <div className="actions">
-          <button className="button secondary" onClick={() => handleStatus(appointment.id, 'CANCELLED')}>Cancel</button>
+          <button className="button secondary" disabled={busyId === appointment.id} onClick={() => handleStatus(appointment.id, 'CANCELLED')}>Cancel request</button>
         </div>
       )}
       {appointment.status === 'APPROVED' && <VideoCall appointmentId={appointment.id} date={appointment.date} startTime={appointment.startTime} endTime={appointment.endTime} />}
@@ -191,20 +213,42 @@ export default function AppointmentsPage() {
 
   return (
     <main className="page shell">
-      <div className="card">
-        <h1>{role === 'DOCTOR' ? 'Appointment requests and history' : 'My Appointments'}</h1>
-        {loadError && <p className="error">{loadError}</p>}
-        {appointments.length === 0 ? (
-          <p>No appointments yet.</p>
-        ) : (
-          <div className="stack" style={{ marginTop: 18 }}>
-            {role === 'DOCTOR' && requestAppointments.length > 0 && <h2>Requests from farmers</h2>}
-            {requestAppointments.map(renderAppointment)}
-            {role === 'DOCTOR' && historyAppointments.length > 0 && <h2>Appointment history</h2>}
-            {historyAppointments.map(renderAppointment)}
-          </div>
-        )}
+      <section className="appointments-heading">
+        <div><p className="section-kicker">{role === 'DOCTOR' ? 'PRACTICE SCHEDULE' : 'YOUR CARE PLAN'}</p><h1>{role === 'DOCTOR' ? 'Appointments' : 'Visits & requests'}</h1><p>{role === 'DOCTOR' ? 'Review new requests, prepare for visits, and revisit completed care.' : 'Keep track of veterinarian requests, confirmed visits, and past care.'}</p></div>
+        {role === 'FARMER' && <Link className="button primary" to="/farmer/doctors">Find a veterinarian</Link>}
+      </section>
+
+      <section className={`appointment-overview ${role === 'DOCTOR' ? 'doctor-appointment-overview' : ''}`}>
+        <div><span>{role === 'DOCTOR' ? 'New requests' : 'Awaiting confirmation'}</span><strong>{role === 'DOCTOR' ? pendingCount : appointments.filter((item) => item.status === 'REQUESTED').length}</strong></div>
+        <div><span>Upcoming visits</span><strong>{upcomingCount}</strong></div>
+        <div><span>Past visits</span><strong>{pastCount}</strong></div>
+      </section>
+
+      <div className="appointment-toolbar">
+        <div className="appointment-filters" role="tablist" aria-label="Filter appointments">
+          {(role === 'DOCTOR'
+            ? [{ key: 'ALL', label: 'All' }, { key: 'REQUESTS', label: 'Requests' }, { key: 'UPCOMING', label: 'Upcoming' }, { key: 'HISTORY', label: 'History' }]
+            : [{ key: 'ALL', label: 'All visits' }, { key: 'UPCOMING', label: 'Upcoming' }, { key: 'REQUESTED', label: 'Pending' }, { key: 'PAST', label: 'Past' }]
+          ).map((item) => <button key={item.key} className={filter === item.key ? 'selected' : ''} onClick={() => setFilter(item.key)}>{item.label}</button>)}
+        </div>
+        <span className="appointment-total">{appointments.length} total</span>
       </div>
+
+      {loadError && <p className="error">{loadError}</p>}
+      {actionError && <p className="error">{actionError}</p>}
+      {loading ? <div className="loading-row"><span className="call-spinner" />Loading appointments…</div> : appointments.length === 0 ? (
+        <div className="appointment-empty"><span aria-hidden="true">◷</span><h2>No appointments yet</h2><p>{role === 'DOCTOR' ? 'Farmer requests will appear here when they book a visit.' : 'Find a veterinarian to request your first visit.'}</p>{role === 'FARMER' && <Link className="button primary" to="/farmer/doctors">Find nearby vets</Link>}</div>
+      ) : role === 'DOCTOR' ? (
+        <div className="appointment-sections">
+          {filteredRequests.length > 0 && <section><div className="section-heading"><div><p className="section-kicker">ACTION NEEDED</p><h2>Requests from farmers <span className="result-count">{filteredRequests.length}</span></h2></div></div><div className="appointment-list">{filteredRequests.map(renderAppointment)}</div></section>}
+          {filteredHistory.length > 0 && <section><div className="section-heading"><div><p className="section-kicker">YOUR SCHEDULE</p><h2>{filter === 'HISTORY' || filter === 'PAST' ? 'Past appointments' : 'Confirmed & past visits'}</h2></div></div><div className="appointment-list">{filteredHistory.map(renderAppointment)}</div></section>}
+          {filteredRequests.length === 0 && filteredHistory.length === 0 && <div className="appointment-empty"><h2>Nothing in this view</h2><p>Try another appointment filter.</p></div>}
+        </div>
+      ) : filteredFarmerAppointments.length > 0 ? (
+        <div className="appointment-list">{filteredFarmerAppointments.map(renderAppointment)}</div>
+      ) : (
+        <div className="appointment-empty"><h2>Nothing in this view</h2><p>Try another appointment filter.</p></div>
+      )}
     </main>
   )
 }
