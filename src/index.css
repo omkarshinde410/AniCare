@@ -168,11 +168,35 @@ input, select {
 .notification-item p { margin: 5px 0; }
 .notification-item time { color: var(--muted); font-size: 0.85rem; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-.video-call { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
-.video-grid { position: relative; min-height: 260px; margin: 12px 0; background: #102a1d; border-radius: 8px; overflow: hidden; }
-.video-grid video { background: #102a1d; object-fit: cover; }
-.remote-video { width: 100%; height: 260px; }
-.local-video { position: absolute; right: 12px; bottom: 12px; width: 120px; height: 86px; border: 2px solid var(--white); box-shadow: 0 4px 12px var(--shadow); }
+.video-call { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.video-call-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.video-call-heading p { margin: 3px 0 0; }
+.call-status { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 0.85rem; }
+.call-status > span { width: 8px; height: 8px; border-radius: 50%; background: #9aa79f; }
+.call-status.is-live > span { background: #1f9d62; box-shadow: 0 0 0 4px #e7f7ee; }
+.call-entry, .call-unavailable { padding: 18px; background: #f5f8f6; border-radius: 10px; }
+.call-entry { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.call-entry p { margin: 0; color: var(--muted); }
+.call-session { overflow: hidden; border-radius: 12px; background: #0b1712; }
+.video-grid { position: relative; aspect-ratio: 16 / 9; min-height: 260px; max-height: min(68vh, 720px); margin: 0; background: #0b1712; overflow: hidden; }
+.video-grid video { background: #0b1712; object-fit: cover; }
+.remote-video { position: absolute; inset: 0; width: 100%; height: 100%; }
+.local-video { position: absolute; right: 18px; bottom: 18px; width: clamp(112px, 19%, 220px); aspect-ratio: 4 / 3; height: auto; border: 2px solid rgba(255,255,255,0.9); border-radius: 10px; box-shadow: 0 6px 22px rgba(0,0,0,0.35); z-index: 2; }
+.remote-video-empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; color: rgba(255,255,255,0.78); text-align: center; pointer-events: none; }
+.call-controls { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px; background: #14251d; }
+.call-control { min-width: 104px; border: 1px solid rgba(255,255,255,0.18); border-radius: 999px; padding: 11px 18px; color: #fff; background: #294236; font-weight: 700; cursor: pointer; }
+.call-control.is-disabled { background: #715847; }
+.call-control.call-end { background: #b83b38; border-color: #b83b38; }
+.appointment-card { padding: 18px; border-radius: 12px; box-shadow: 0 4px 16px var(--shadow); }
+.appointment-current { border-left: 5px solid var(--green); }
+.appointment-past { background: #f5f6f5; border-color: #d9dfdb; border-left: 5px solid #8c9991; box-shadow: none; color: #58655e; }
+.appointment-past h3 { color: #46534c; }
+.appointment-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.appointment-state, .appointment-status { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 10px; font-size: 0.75rem; font-weight: 800; }
+.appointment-state.state-current { color: var(--green-dark); background: var(--green-soft); }
+.appointment-state.state-requested { color: #81520b; background: #fff3d7; }
+.appointment-state.state-past { color: #5b665f; background: #e5e9e6; }
+.appointment-status { color: #46534c; background: rgba(16,42,29,0.06); }
 .document-form, .payment-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
 .bottom-nav {
   position: fixed;
@@ -220,4 +244,11 @@ input, select {
   .bottom-nav { gap: 2px; padding-left: 5px; padding-right: 5px; }
   .bottom-nav a { font-size: 0.65rem; padding: 8px 2px; }
   .notification-item { align-items: flex-start; flex-direction: column; }
+  .video-call-heading { align-items: flex-start; flex-direction: column; }
+  .call-entry { align-items: stretch; flex-direction: column; }
+  .video-grid { min-height: 220px; max-height: 58vh; }
+  .local-video { right: 10px; bottom: 10px; width: min(32%, 140px); border-radius: 7px; }
+  .call-controls { gap: 8px; padding: 10px; }
+  .call-control { min-width: 0; flex: 1; padding: 10px 8px; font-size: 0.8rem; }
+  .appointment-card-meta { align-items: flex-start; flex-direction: column; }
 }

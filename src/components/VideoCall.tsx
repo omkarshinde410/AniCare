@@ -17,6 +17,9 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
   const [active, setActive] = useState(false)
   const [now, setNow] = useState(() => new Date())
   const [status, setStatus] = useState('Ready for a private video call')
+  const [microphoneMuted, setMicrophoneMuted] = useState(false)
+  const [cameraDisabled, setCameraDisabled] = useState(false)
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false)
   const remoteVideo = useRef<HTMLVideoElement>(null)
   const localVideo = useRef<HTMLVideoElement>(null)
   const remoteStream = useRef<MediaStream | null>(null)
@@ -73,6 +76,7 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
       localStream.current.getTracks().forEach((track) => peer.current?.addTrack(track, localStream.current!))
       peer.current.ontrack = (event) => {
         remoteStream.current = event.streams[0] ?? new MediaStream([event.track])
+        setHasRemoteVideo(true)
         if (remoteVideo.current) {
           remoteVideo.current.srcObject = remoteStream.current
           void remoteVideo.current.play().catch(() => undefined)
@@ -160,8 +164,23 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
     if (localVideo.current) localVideo.current.srcObject = null
     if (remoteVideo.current) remoteVideo.current.srcObject = null
     remoteStream.current = null
+    setHasRemoteVideo(false)
     setActive(false)
+    setMicrophoneMuted(false)
+    setCameraDisabled(false)
     setStatus('Call ended')
+  }
+
+  const toggleMicrophone = () => {
+    const nextMuted = !microphoneMuted
+    localStream.current?.getAudioTracks().forEach((track) => { track.enabled = !nextMuted })
+    setMicrophoneMuted(nextMuted)
+  }
+
+  const toggleCamera = () => {
+    const nextDisabled = !cameraDisabled
+    localStream.current?.getVideoTracks().forEach((track) => { track.enabled = !nextDisabled })
+    setCameraDisabled(nextDisabled)
   }
 
   useEffect(() => () => endCall(), [])
@@ -184,21 +203,35 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
 
   return (
     <div className="video-call">
-      <p className="muted">{status}</p>
+      <div className="video-call-heading">
+        <div>
+          <strong>Video consultation</strong>
+          <p className="muted">{date} · {startTime}–{endTime}</p>
+        </div>
+        <span className={`call-status ${active ? 'is-live' : ''}`}><span />{status}</span>
+      </div>
       {!active ? (
         !withinWindow ? (
-          <p className="muted">Video calling is available only from {startTime} to {endTime} on {date}.</p>
+          <div className="call-unavailable">Video calling is available only during the scheduled appointment.</div>
         ) : (
-        <button type="button" className="button primary" onClick={startCall}>Start video call</button>
+          <div className="call-entry">
+            <p>Join the private appointment call when both participants are ready.</p>
+            <button type="button" className="button primary" onClick={startCall}>Join video call</button>
+          </div>
         )
       ) : (
-        <>
+        <div className="call-session">
           <div className="video-grid">
             <video ref={remoteVideo} autoPlay playsInline onLoadedMetadata={(event) => void event.currentTarget.play().catch(() => undefined)} className="remote-video" />
             <video ref={localVideo} autoPlay muted playsInline className="local-video" />
+            {!hasRemoteVideo && <div className="remote-video-empty">{status}</div>}
           </div>
-          <button type="button" className="button secondary" onClick={endCall}>End call</button>
-        </>
+          <div className="call-controls" aria-label="Video call controls">
+            <button type="button" className={`call-control ${microphoneMuted ? 'is-disabled' : ''}`} onClick={toggleMicrophone} aria-label={microphoneMuted ? 'Turn microphone on' : 'Mute microphone'} title={microphoneMuted ? 'Turn microphone on' : 'Mute microphone'}>{microphoneMuted ? 'Mic off' : 'Mic on'}</button>
+            <button type="button" className={`call-control ${cameraDisabled ? 'is-disabled' : ''}`} onClick={toggleCamera} aria-label={cameraDisabled ? 'Turn camera on' : 'Turn camera off'} title={cameraDisabled ? 'Turn camera on' : 'Turn camera off'}>{cameraDisabled ? 'Camera off' : 'Camera on'}</button>
+            <button type="button" className="call-control call-end" onClick={endCall}>End call</button>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -10,6 +10,11 @@ function isAppointmentInWindow(appointment: any) {
   return now >= start && now <= end
 }
 
+function isAppointmentPast(appointment: any) {
+  const end = new Date(`${appointment.date}T${appointment.endTime}`)
+  return Number.isFinite(end.getTime()) && new Date() > end
+}
+
 function DoctorDocumentForm({ appointment, doctorName }: { appointment: any; doctorName: string }) {
   const [title, setTitle] = useState('Medicine instructions')
   const [content, setContent] = useState('')
@@ -123,7 +128,13 @@ export default function AppointmentsPage() {
   const historyAppointments = role === 'DOCTOR' ? appointments.filter((appointment) => appointment.status !== 'REQUESTED') : appointments
 
   const renderAppointment = (appointment: any) => (
-    <div key={appointment.id} className="card" style={{ padding: 16 }}>
+    <div key={appointment.id} className={`card appointment-card ${isAppointmentPast(appointment) ? 'appointment-past' : 'appointment-current'}`}>
+      <div className="appointment-card-meta">
+        <span className={`appointment-state ${appointment.status === 'REQUESTED' ? 'state-requested' : isAppointmentPast(appointment) ? 'state-past' : 'state-current'}`}>
+          {appointment.status === 'REQUESTED' ? 'New request' : isAppointmentPast(appointment) ? 'Past appointment' : 'Upcoming / today'}
+        </span>
+        <span className="appointment-status">{appointment.status}</span>
+      </div>
       <h3>
         {role === 'DOCTOR'
           ? `Farmer: ${appointment.farmer?.fullName ?? 'Farmer'}`
@@ -132,7 +143,6 @@ export default function AppointmentsPage() {
       <p>{appointment.date} • {appointment.startTime} - {appointment.endTime}</p>
       <p>Reason: {appointment.reason}</p>
       {role === 'DOCTOR' && <p>Animal: {appointment.animalName ?? appointment.animalType ?? 'Not specified'}</p>}
-      <p>Status: {appointment.status}</p>
       {role === 'DOCTOR' && <p>Farmer contact: {appointment.farmer?.phone ? <a href={`tel:${appointment.farmer.phone}`}>{appointment.farmer.phone}</a> : 'Not provided'}</p>}
       {role === 'FARMER' && <p>Doctor contact: {appointment.doctor?.user?.phone ? <a href={`tel:${appointment.doctor.user.phone}`}>{appointment.doctor.user.phone}</a> : 'Not provided'}</p>}
 
