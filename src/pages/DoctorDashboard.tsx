@@ -8,7 +8,6 @@ export default function DoctorDashboard() {
   const [profile, setProfile] = useState<any>({})
   const [profileMessage, setProfileMessage] = useState('')
   const [profileError, setProfileError] = useState('')
-  const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
     api.get('/appointments/mine')
@@ -17,9 +16,6 @@ export default function DoctorDashboard() {
     api.get('/doctors/me')
       .then((res) => setProfile(res.data ?? {}))
       .catch(() => setProfile({}))
-    api.get('/notifications')
-      .then((res) => setUnreadCount(res.data.filter((item: any) => !item.read).length))
-      .catch(() => setUnreadCount(0))
   }, [])
 
   const updateProfile = (field: string, value: string) => {
@@ -52,34 +48,25 @@ export default function DoctorDashboard() {
     }
   }
 
-  const today = new Date().toLocaleDateString('en-CA')
   const pending = appointments.filter((item) => item.status === 'REQUESTED').length
-  const todayCount = appointments.filter((item) => item.date === today && item.status === 'APPROVED').length
-  const upcoming = appointments.filter((item) => item.status === 'APPROVED' && new Date(`${item.date}T${item.endTime}`) >= new Date()).length
+  const approved = appointments.filter((item) => item.status === 'APPROVED').length
 
   return (
     <main className="page shell">
       <header className="topbar">
         <div className="brand">AniCare</div>
-        <Link className="user-chip" to="/doctor/documents">Doctor · {user.fullName ?? 'Welcome'}</Link>
+        <div className="user-chip">Doctor • {user.fullName ?? 'Welcome'}</div>
       </header>
 
-      <section className="doctor-welcome">
-        <div>
-          <p className="section-kicker">VETERINARY WORKSPACE</p>
-          <h1>Good day, Dr. {user.fullName?.split(' ')[0] ?? 'Doctor'}.</h1>
-          <p>Manage today’s consultations, review farmer requests, and prepare care notes in one place.</p>
-        </div>
-        <div className={`verification-stamp ${user.status === 'ACTIVE' ? 'verified' : 'pending'}`}>
-          <span>{user.status === 'ACTIVE' ? '✓' : '…'}</span>
-          <small>{user.status === 'ACTIVE' ? 'VERIFIED' : 'IN REVIEW'}</small>
-        </div>
+      <section className="card hero compact">
+        <h1>Welcome, Dr. {user.fullName ?? 'Doctor'}</h1>
+        <p>Verification: {user.status === 'ACTIVE' ? 'Approved' : 'Pending administrator review'}</p>
       </section>
 
       {user.status !== 'ACTIVE' && (
-        <section className="profile-review-panel">
-          <div className="section-heading"><div><p className="section-kicker">GET VERIFIED</p><h2>Complete your professional profile</h2></div><span className="appointment-state state-requested">Review pending</span></div>
-          <p>Add your credentials and practice details for the administrator review.</p>
+        <section className="card" style={{ marginTop: 20 }}>
+          <h2>Complete your doctor profile</h2>
+          <p>Add your professional details so an administrator can review your application.</p>
           <form onSubmit={saveProfile} className="stack">
             <label>Full name<input value={profile.fullName ?? user.fullName ?? ''} onChange={(e) => updateProfile('fullName', e.target.value)} required /></label>
             <label>Degree<input value={profile.degree ?? ''} onChange={(e) => updateProfile('degree', e.target.value)} /></label>
@@ -96,19 +83,16 @@ export default function DoctorDashboard() {
         </section>
       )}
 
-      <section className="dashboard-metrics doctor-metrics" aria-label="Practice overview">
-        <div><span>Today’s visits</span><strong>{todayCount}</strong><Link to="/doctor/appointments">Open schedule</Link></div>
-        <div><span>Farmer requests</span><strong>{pending}</strong><Link to="/doctor/appointments">Review requests</Link></div>
-        <div><span>Upcoming visits</span><strong>{upcoming}</strong><Link to="/doctor/appointments">View appointments</Link></div>
-        <div><span>Unread updates</span><strong>{unreadCount}</strong><Link to="/doctor/notifications">Open inbox</Link></div>
+      <section className="grid two-up">
+        <div className="card"><h3>Today's Appointments</h3><p>{approved}</p></div>
+        <div className="card"><h3>Pending Requests</h3><p>{pending}</p></div>
       </section>
 
-      <section className="dashboard-section">
-        <div className="section-heading"><div><p className="section-kicker">PRACTICE TOOLS</p><h2>Pick up where you left off</h2></div></div>
-        <div className="dashboard-shortcuts doctor-shortcuts">
-          <Link to="/doctor/appointments"><span className="shortcut-symbol">↗</span><span><strong>Appointment desk</strong><small>Review requests and visit history</small></span><b>→</b></Link>
-          <Link to="/doctor/documents"><span className="shortcut-symbol document-symbol">▤</span><span><strong>Medical documents</strong><small>Prepare and view authorized care notes</small></span><b>→</b></Link>
-          <Link to="/doctor/notifications"><span className="shortcut-symbol alert-symbol">•</span><span><strong>Notifications</strong><small>{unreadCount ? `${unreadCount} unread updates` : 'Updates from your appointments'}</small></span><b>→</b></Link>
+      <section className="card" style={{ marginTop: 20 }}>
+        <h3>Quick actions</h3>
+        <div className="actions">
+          {user.status === 'ACTIVE' && <Link className="button primary" to="/doctor/appointments">Review requests</Link>}
+          {user.status !== 'ACTIVE' && <p>Your dashboard access is limited until an administrator approves your profile.</p>}
         </div>
       </section>
     </main>
