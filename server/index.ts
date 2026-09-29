@@ -15,6 +15,7 @@ import appointmentRoutes from './routes/appointments.js'
 import paymentRoutes from './routes/payments.js'
 import documentRoutes from './routes/documents.js'
 import diseaseRoutes from './routes/diseaseAlerts.js'
+import diseasePredictionRoutes from './routes/diseasePredictions.js'
 import notificationRoutes from './routes/notifications.js'
 import { attachSignaling } from './signaling.js'
 
@@ -51,6 +52,7 @@ app.use('/api/appointments', appointmentRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/documents', documentRoutes)
 app.use('/api/disease-alerts', diseaseRoutes)
+app.use('/api/disease-predictions', diseasePredictionRoutes)
 app.use('/api/notifications', notificationRoutes)
 
 if (process.env.NODE_ENV === 'production') {

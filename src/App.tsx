@@ -14,6 +14,7 @@ import ProfilePage from './pages/ProfilePage'
 import BookAppointmentPage from './pages/BookAppointmentPage'
 import DoctorApprovalPage from './pages/DoctorApprovalPage'
 import NotificationsPage from './pages/NotificationsPage'
+import DiseasePredictionPage from './pages/DiseasePredictionPage'
 import NotificationToasts from './components/NotificationToasts'
 
 function ModuleBottomNav() {
@@ -23,6 +24,7 @@ function ModuleBottomNav() {
     { to: '/farmer/doctors', label: 'Doctors' },
     { to: '/farmer/appointments', label: 'Appointments' },
     { to: '/farmer/alerts', label: 'Alerts' },
+    { to: '/farmer/predict', label: 'Predict' },
     { to: '/farmer/documents', label: 'Documents' },
     { to: '/farmer/notifications', label: 'Notifications' },
     { to: '/farmer/profile', label: 'Profile' },
@@ -65,6 +67,7 @@ function App() {
         <Route path="/farmer/documents" element={<DocumentsPage />} />
         <Route path="/farmer/notifications" element={<NotificationsPage />} />
         <Route path="/farmer/alerts" element={<AlertsPage />} />
+        <Route path="/farmer/predict" element={<DiseasePredictionPage />} />
         <Route path="/farmer/profile" element={<ProfilePage />} />
         <Route path="/doctor" element={<DoctorDashboard />} />
         <Route path="/doctor/appointments" element={<AppointmentsPage />} />
