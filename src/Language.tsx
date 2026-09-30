@@ -1,7 +1,7 @@
-import { Children, cloneElement, createContext, isValidElement, useContext, useEffect, useState } from 'react'
+import { Children, cloneElement, isValidElement, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-
-export type Language = 'en' | 'hi' | 'mr'
+import { translatePredictionText } from './predictionTranslations'
+import { LanguageContext, useLanguage, type Language } from './languageContext'
 
 const phraseTranslations: Record<string, [string, string]> = {
   'Language': ['भाषा', 'भाषा'],
@@ -276,6 +276,7 @@ function translateText(text: string, language: Language) {
   const trimmed = text.trim()
   const translation = supplementalTranslations[trimmed]?.[language === 'hi' ? 0 : 1]
     ?? phraseTranslations[trimmed]?.[language === 'hi' ? 0 : 1]
+    ?? translatePredictionText(trimmed, language)
   return translation ? text.replace(trimmed, translation) : text
 }
 
@@ -294,9 +295,6 @@ function translateNode(node: ReactNode, language: Language): ReactNode {
   return cloneElement(node, changes as Partial<typeof node.props>)
 }
 
-type LanguageContextValue = { language: Language; setLanguage: (language: Language) => void }
-const LanguageContext = createContext<LanguageContextValue | null>(null)
-
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('ani-care-language')
@@ -313,12 +311,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [language])
 
   return <LanguageContext.Provider value={{ language, setLanguage }}>{children}</LanguageContext.Provider>
-}
-
-function useLanguage() {
-  const value = useContext(LanguageContext)
-  if (!value) throw new Error('Language components must be used inside LanguageProvider.')
-  return value
 }
 
 export function Localized({ children }: { children: ReactNode }) {

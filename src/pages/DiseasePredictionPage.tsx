@@ -3,6 +3,8 @@ import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { Localized } from '../Language'
+import { useLanguage } from '../languageContext'
+import { formatMatchScore, formatMatchingExamples, formatSelectedSymptoms, translatePredictionText } from '../predictionTranslations'
 
 type PredictionOptions = {
   animals: string[]
@@ -20,6 +22,7 @@ type PredictionResult = {
 }
 
 export default function DiseasePredictionPage() {
+  const { language } = useLanguage()
   const [options, setOptions] = useState<PredictionOptions>({ animals: [], symptoms: [] })
   const [animalType, setAnimalType] = useState('')
   const [symptoms, setSymptoms] = useState<string[]>([])
@@ -85,17 +88,17 @@ export default function DiseasePredictionPage() {
         {loadingOptions ? <p className="muted">Loading symptom list...</p> : (
           <form className="prediction-form" onSubmit={submitPrediction}>
             <label>
-              Animal
+              {translatePredictionText('Animal', language) ?? 'Animal'}
               <select value={animalType} onChange={(event) => {
                 setAnimalType(event.target.value)
                 setResult(null)
               }} required>
-                {options.animals.map((animal) => <option key={animal} value={animal}>{animal}</option>)}
+                {options.animals.map((animal) => <option key={animal} value={animal}>{translatePredictionText(animal, language) ?? animal}</option>)}
               </select>
             </label>
 
             <fieldset>
-              <legend>Observed symptoms ({symptoms.length} selected)</legend>
+              <legend>{formatSelectedSymptoms(symptoms.length, language)}</legend>
               {options.symptoms.length === 0 ? <p className="muted">No symptoms are available right now.</p> : (
                 <div className="symptom-list">
                   {options.symptoms.map((symptom) => (
@@ -105,7 +108,7 @@ export default function DiseasePredictionPage() {
                         checked={symptoms.includes(symptom)}
                         onChange={() => toggleSymptom(symptom)}
                       />
-                      <span>{symptom}</span>
+                      <span>{translatePredictionText(symptom, language) ?? symptom}</span>
                     </label>
                   ))}
                 </div>
@@ -129,10 +132,10 @@ export default function DiseasePredictionPage() {
               {result.predictions.map((match) => (
                 <div className="prediction-candidate" key={match.disease}>
                   <div>
-                    <strong>{match.disease}</strong>
-                    <div className="muted">{match.matchingExamples} similar dataset record{match.matchingExamples === 1 ? '' : 's'}</div>
+                    <strong>{translatePredictionText(match.disease, language) ?? match.disease}</strong>
+                    <div className="muted">{formatMatchingExamples(match.matchingExamples, language)}</div>
                   </div>
-                  <span className="prediction-score">{match.confidence}% match</span>
+                  <span className="prediction-score">{formatMatchScore(match.confidence, language)}</span>
                 </div>
               ))}
             </div>
