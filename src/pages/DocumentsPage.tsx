@@ -4,11 +4,14 @@ import { api } from '../api'
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const role = JSON.parse(localStorage.getItem('ani-care-user') ?? '{}').role ?? 'FARMER'
 
   useEffect(() => {
     api.get('/documents/my')
       .then((res) => setDocuments(res.data))
       .catch(() => setDocuments([]))
+      .finally(() => setLoading(false))
   }, [])
 
   const handleDownload = (document: any) => {
@@ -43,24 +46,31 @@ export default function DocumentsPage() {
 
   return (
     <main className="page shell">
-      <div className="card">
-        <h1>My Medical Documents</h1>
-        {documents.length === 0 ? (
-          <p>No medicine documents available.</p>
+      <section className="documents-heading">
+        <div><p className="section-kicker">CARE RECORDS</p><h1>{role === 'DOCTOR' ? 'Clinical documents' : 'Medical documents'}</h1><p>{role === 'DOCTOR' ? 'Authorized prescriptions and care notes you have prepared.' : 'Prescriptions and treatment notes shared by your veterinarian.'}</p></div>
+        <div className="document-count"><strong>{documents.length}</strong><span>{documents.length === 1 ? 'document' : 'documents'}</span></div>
+      </section>
+      <div className="documents-toolbar"><span>All records</span><span>Newest first</span></div>
+        {loading ? (
+          <div className="loading-row"><span className="call-spinner" />Loading medical documents…</div>
+        ) : documents.length === 0 ? (
+          <div className="documents-empty"><span aria-hidden="true">▤</span><h2>No documents yet</h2><p>Authorized care notes will appear here for you to review and download.</p></div>
         ) : (
-          <div className="stack" style={{ marginTop: 18 }}>
+          <div className="documents-list">
             {documents.map((document) => (
-              <div key={document.id} className="card" style={{ padding: 16 }}>
-                <h3>{document.title}</h3>
-                <p>{document.notes ?? 'Treatment note available'}</p>
-                <p>Authorized by: {document.authenticatedBy ?? 'Veterinary doctor'}</p>
-                <p>{new Date(document.createdAt).toLocaleDateString()}</p>
-                <button className="button primary" onClick={() => handleDownload(document)}>Download PDF</button>
-              </div>
+              <article key={document.id} className="document-row">
+                <div className="document-file-mark">PDF</div>
+                <div className="document-row-main">
+                  <span className="section-kicker">AUTHORIZED CARE NOTE</span>
+                  <h2>{document.title}</h2>
+                  <p>{document.content || document.notes || 'Treatment instructions prepared for this appointment.'}</p>
+                  <div className="document-meta"><span>{document.doctor?.user?.fullName ?? document.authenticatedBy ?? 'Veterinary doctor'}</span><time>{new Date(document.createdAt).toLocaleDateString()}</time><span>{document.medicines?.length ?? 0} medicines</span></div>
+                </div>
+                <button className="button secondary" onClick={() => handleDownload(document)}>↓ Download PDF</button>
+              </article>
             ))}
           </div>
         )}
-      </div>
     </main>
   )
 }
