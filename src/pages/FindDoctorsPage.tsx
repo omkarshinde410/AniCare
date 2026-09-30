@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import { api } from '../api'
 import 'leaflet/dist/leaflet.css'
+import { Localized } from '../Language'
 
 type Coordinates = [number, number]
 
@@ -59,6 +60,7 @@ export default function FindDoctorsPage() {
 
   return (
     <main className="page shell">
+      <Localized>
       <header className="topbar">
         <div><div className="brand">AniCare</div><span className="workspace-caption">FIND A VETERINARIAN</span></div>
       </header>
@@ -86,6 +88,9 @@ export default function FindDoctorsPage() {
               center={[doctor.latitude, doctor.longitude]}
               pathOptions={{ color: '#b45309', fillColor: '#f59e0b', fillOpacity: 0.9 }}
               radius={8}
+              eventHandlers={{
+                click: () => document.getElementById(`doctor-${doctor.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+              }}
             >
               <Tooltip permanent direction="top" offset={[0, -8]} className="doctor-map-label">
                 <span aria-hidden="true">👤</span> {doctor.fullName}
@@ -109,7 +114,7 @@ export default function FindDoctorsPage() {
       <section className="stack">
         <div className="section-heading result-heading"><div><p className="section-kicker">VERIFIED NEARBY</p><h2>Veterinarians <span className="result-count">{loading ? '…' : doctors.length}</span></h2></div></div>
         {loading ? <div className="card empty-state">Finding nearby veterinary doctors...</div> : doctors.length === 0 ? <div className="card empty-state">No nearby veterinary doctors found.</div> : doctors.map((doctor) => (
-          <div key={doctor.id} className="card doctor-card finder-doctor-card">
+          <div id={`doctor-${doctor.id}`} key={doctor.id} className="card doctor-card finder-doctor-card">
             <div className="doctor-header">
               <div>
                 <h3><span className="profile-icon" aria-hidden="true">👤</span>{doctor.fullName}</h3>
@@ -124,6 +129,7 @@ export default function FindDoctorsPage() {
           </div>
         ))}
       </section>
+      </Localized>
     </main>
   )
 }

@@ -111,22 +111,21 @@ export function predictDisease(animalType: string, selectedSymptoms: string[]): 
   const symptoms = new Set(selectedSymptoms.map(normalizeSymptom))
   if (!normalizedAnimal || symptoms.size === 0) return []
 
-  const nearest = records.map((record) => {
+  const nearest = records.filter((record) => record.animalType.toLowerCase() === normalizedAnimal).map((record) => {
     const intersection = [...symptoms].filter((symptom) => record.symptoms.has(symptom)).length
     if (intersection === 0) return null
 
-    const similarity = (2 * intersection) / (symptoms.size + record.symptoms.size)
-    const sameAnimal = record.animalType.toLowerCase() === normalizedAnimal
-    return { ...record, score: similarity ** 4 * (sameAnimal ? 1.5 : 0.5) }
+    const union = new Set([...symptoms, ...record.symptoms]).size
+    return { ...record, similarity: intersection / union }
   })
     .filter((record): record is NonNullable<typeof record> => record !== null)
-    .sort((left, right) => right.score - left.score)
-    .slice(0, 15)
+    .sort((left, right) => right.similarity - left.similarity)
+    .slice(0, 5)
 
   const diseaseScores = new Map<string, { score: number; matchingExamples: number }>()
   for (const record of nearest) {
     const current = diseaseScores.get(record.disease) ?? { score: 0, matchingExamples: 0 }
-    current.score += record.score
+    current.score += record.similarity
     current.matchingExamples += 1
     diseaseScores.set(record.disease, current)
   }

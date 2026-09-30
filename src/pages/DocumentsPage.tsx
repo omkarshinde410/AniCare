@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { jsPDF } from 'jspdf'
 import { api } from '../api'
+import { Localized } from '../Language'
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<any[]>([])
@@ -46,6 +47,7 @@ export default function DocumentsPage() {
 
   return (
     <main className="page shell">
+      <Localized>
       <section className="documents-heading">
         <div><p className="section-kicker">CARE RECORDS</p><h1>{role === 'DOCTOR' ? 'Clinical documents' : 'Medical documents'}</h1><p>{role === 'DOCTOR' ? 'Authorized prescriptions and care notes you have prepared.' : 'Prescriptions and treatment notes shared by your veterinarian.'}</p></div>
         <div className="document-count"><strong>{documents.length}</strong><span>{documents.length === 1 ? 'document' : 'documents'}</span></div>
@@ -71,6 +73,7 @@ export default function DocumentsPage() {
             ))}
           </div>
         )}
+      </Localized>
     </main>
   )
 }

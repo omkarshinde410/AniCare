@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { jsPDF } from 'jspdf'
 import { api } from '../api'
 import VideoCall from '../components/VideoCall'
+import { Localized } from '../Language'
 
 function isAppointmentInWindow(appointment: any) {
   const start = new Date(`${appointment.date}T${appointment.startTime}`)
@@ -41,7 +42,7 @@ function DoctorDocumentForm({ appointment, doctorName }: { appointment: any; doc
   }
 
   return (
-    <form className="document-form stack" onSubmit={saveDocument}>
+    <Localized><form className="document-form stack" onSubmit={saveDocument}>
       <h3>Medicine document</h3>
       <label>Document title<input value={title} onChange={(event) => setTitle(event.target.value)} required /></label>
       <label>Instructions<textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Write diagnosis and medicine instructions" /></label>
@@ -52,7 +53,7 @@ function DoctorDocumentForm({ appointment, doctorName }: { appointment: any; doc
       <label>Signature name<input value={signature} onChange={(event) => setSignature(event.target.value)} required /></label>
       {message && <p className="success">{message}</p>}
       <button className="button primary" type="submit">Authorize document</button>
-    </form>
+    </form></Localized>
   )
 }
 
@@ -70,13 +71,13 @@ function DoctorPaymentForm({ appointment }: { appointment: any }) {
     }
   }
   return (
-    <form className="payment-form stack" onSubmit={requestPayment}>
+    <Localized><form className="payment-form stack" onSubmit={requestPayment}>
       <h3>Request a fee</h3>
       <label>Amount<input type="number" min="1" value={amount} onChange={(event) => setAmount(event.target.value)} required /></label>
       <label>Reason<input value={reason} onChange={(event) => setReason(event.target.value)} required /></label>
       {message && <p className="success">{message}</p>}
       <button className="button secondary" type="submit">Send fee request</button>
-    </form>
+    </form></Localized>
   )
 }
 
@@ -113,6 +114,7 @@ export default function AppointmentsPage() {
   const [filter, setFilter] = useState('ALL')
   const [actionError, setActionError] = useState('')
   const [busyId, setBusyId] = useState('')
+  const [searchParams] = useSearchParams()
 
   useEffect(() => {
     api.get('/appointments/mine')
@@ -123,6 +125,15 @@ export default function AppointmentsPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    const appointmentId = searchParams.get('appointmentId')
+    if (!appointmentId || loading || filter !== 'ALL') return
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`appointment-${appointmentId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [appointments, filter, loading, searchParams])
 
   const handleStatus = async (id: string, status: 'APPROVED' | 'REJECTED' | 'CANCELLED') => {
     setBusyId(id)
@@ -150,7 +161,7 @@ export default function AppointmentsPage() {
   const filteredFarmerAppointments = appointments.filter((appointment) => filter === 'ALL' || (filter === 'UPCOMING' && isUpcoming(appointment)) || (filter === 'PAST' && isAppointmentPast(appointment)) || (filter === 'REQUESTED' && appointment.status === 'REQUESTED'))
 
   const renderAppointment = (appointment: any) => (
-    <div key={appointment.id} className={`card appointment-card ${isAppointmentPast(appointment) ? 'appointment-past' : 'appointment-current'}`}>
+    <div id={`appointment-${appointment.id}`} key={appointment.id} className={`card appointment-card ${isAppointmentPast(appointment) ? 'appointment-past' : 'appointment-current'}`}>
       <div className="appointment-card-meta">
         <span className={`appointment-state ${appointment.status === 'REQUESTED' ? 'state-requested' : isAppointmentPast(appointment) ? 'state-past' : 'state-current'}`}>
           {appointment.status === 'REQUESTED' ? 'New request' : isAppointmentPast(appointment) ? 'Past appointment' : 'Upcoming / today'}
@@ -213,6 +224,7 @@ export default function AppointmentsPage() {
 
   return (
     <main className="page shell">
+      <Localized>
       <section className="appointments-heading">
         <div><p className="section-kicker">{role === 'DOCTOR' ? 'PRACTICE SCHEDULE' : 'YOUR CARE PLAN'}</p><h1>{role === 'DOCTOR' ? 'Appointments' : 'Visits & requests'}</h1><p>{role === 'DOCTOR' ? 'Review new requests, prepare for visits, and revisit completed care.' : 'Keep track of veterinarian requests, confirmed visits, and past care.'}</p></div>
         {role === 'FARMER' && <Link className="button primary" to="/farmer/doctors">Find a veterinarian</Link>}
@@ -249,6 +261,7 @@ export default function AppointmentsPage() {
       ) : (
         <div className="appointment-empty"><h2>Nothing in this view</h2><p>Try another appointment filter.</p></div>
       )}
+      </Localized>
     </main>
   )
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { Localized } from '../Language'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -26,6 +27,7 @@ export default function LoginPage() {
 
   return (
     <main className="page center">
+      <Localized>
       <div className="card form-card">
         <h1>Login</h1>
         <form onSubmit={handleSubmit} className="stack">
@@ -41,6 +43,7 @@ export default function LoginPage() {
           <button type="submit" className="button primary full-width">Login</button>
         </form>
       </div>
+      </Localized>
     </main>
   )
 }

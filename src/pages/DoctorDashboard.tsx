@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
+import { Localized } from '../Language'
 
 export default function DoctorDashboard() {
   const user = JSON.parse(localStorage.getItem('ani-care-user') ?? '{}')
@@ -59,6 +60,7 @@ export default function DoctorDashboard() {
 
   return (
     <main className="page shell">
+      <Localized>
       <header className="topbar">
         <div className="brand">AniCare</div>
         <Link className="user-chip" to="/doctor/documents">Doctor · {user.fullName ?? 'Welcome'}</Link>
@@ -111,6 +113,7 @@ export default function DoctorDashboard() {
           <Link to="/doctor/notifications"><span className="shortcut-symbol alert-symbol">•</span><span><strong>Notifications</strong><small>{unreadCount ? `${unreadCount} unread updates` : 'Updates from your appointments'}</small></span><b>→</b></Link>
         </div>
       </section>
+      </Localized>
     </main>
   )
 }

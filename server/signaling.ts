@@ -41,7 +41,8 @@ export function attachSignaling(server: HttpServer, prisma: PrismaClient) {
         return
       }
 
-      const room = rooms.get(appointmentId) ?? new Set<SignalingSocket>()
+      const existingRoom = rooms.get(appointmentId)
+      const room = existingRoom ?? new Set<SignalingSocket>()
       if (room.size >= 2) {
         socket.close(1013, 'This call already has two participants')
         return
@@ -51,6 +52,18 @@ export function attachSignaling(server: HttpServer, prisma: PrismaClient) {
       socket.userId = userId
       room.add(socket)
       rooms.set(appointmentId, room)
+      if (!existingRoom) {
+        const recipientId = userId === appointment.farmerId ? appointment.doctor.userId : appointment.farmerId
+        void prisma.notification.create({
+          data: {
+            userId: recipientId,
+            appointmentId,
+            title: 'Video call started',
+            message: 'Your appointment partner started a video call. Open this notification to join.',
+            type: 'VIDEO_CALL_STARTED',
+          },
+        }).catch(() => undefined)
+      }
       const role = room.size === 1 ? 'offerer' : 'answerer'
       socket.send(JSON.stringify({ type: 'role', role, participants: room.size }))
       socket.send(JSON.stringify({ type: 'joined', participants: room.size }))
@@ -61,6 +74,10 @@ export function attachSignaling(server: HttpServer, prisma: PrismaClient) {
         try {
           const message = JSON.parse(raw.toString()) as { type?: string; data?: unknown }
           if (!message.type || !['offer', 'answer', 'candidate', 'hangup'].includes(message.type)) return
+          if (message.type === 'hangup') {
+            broadcast(room, socket, { type: 'hangup' })
+            return
+          }
           broadcast(room, socket, { type: message.type, data: message.data })
         } catch {
           socket.send(JSON.stringify({ type: 'error', message: 'Invalid signaling message' }))

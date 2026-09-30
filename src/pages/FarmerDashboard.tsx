@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
+import { Localized } from '../Language'
 
 export default function FarmerDashboard() {
   const user = JSON.parse(localStorage.getItem('ani-care-user') ?? '{}')
@@ -36,6 +37,7 @@ export default function FarmerDashboard() {
 
   return (
     <main className="page shell">
+      <Localized>
       <header className="topbar">
         <div className="brand">AniCare</div>
         <Link className="user-chip" to="/farmer/profile">Farmer · {user.fullName ?? 'Welcome'}</Link>
@@ -81,6 +83,7 @@ export default function FarmerDashboard() {
         <Link to="/farmer/alerts"><span className="shortcut-symbol alert-symbol">!</span><span><strong>Local health alerts</strong><small>{alertsCount ? `${alertsCount} active near your location` : 'Check reports in your area'}</small></span><b>→</b></Link>
         <Link to="/farmer/documents"><span className="shortcut-symbol document-symbol">▤</span><span><strong>Medical documents</strong><small>Prescriptions and care notes</small></span><b>→</b></Link>
       </section>
+      </Localized>
     </main>
   )
 }

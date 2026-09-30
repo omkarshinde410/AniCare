@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Localized } from '../Language'
 
 type SignalMessage = { type: string; role?: 'offerer' | 'answerer'; participants?: number; data?: unknown; message?: string }
 
@@ -146,7 +147,10 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
             }
             else pendingCandidates.current.push(message.data as RTCIceCandidateInit)
           }
-          if (message.type === 'peer-left') setStatus('The other participant left the call.')
+          if (message.type === 'hangup' || message.type === 'peer-left') {
+            endCall(false)
+            setStatus('The other participant ended the call.')
+          }
         } catch {
           setStatus('Unable to establish the video connection. Please try again.')
         }
@@ -163,11 +167,17 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
     }
   }
 
-  const endCall = () => {
-    sendSignal({ type: 'hangup' })
-    socket.current?.close()
+  const endCall = (notifyPeer = true) => {
+    if (notifyPeer && socket.current?.readyState === WebSocket.OPEN) {
+      socket.current.send(JSON.stringify({ type: 'hangup' }))
+    }
+    const currentSocket = socket.current
+    socket.current = null
+    currentSocket?.close(1000, 'Call ended')
     peer.current?.close()
+    peer.current = null
     localStream.current?.getTracks().forEach((track) => track.stop())
+    localStream.current = null
     if (localVideo.current) localVideo.current.srcObject = null
     if (remoteVideo.current) remoteVideo.current.srcObject = null
     remoteStream.current = null
@@ -210,7 +220,8 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
   }, [active])
 
   return (
-    <div className="video-call">
+    <Localized>
+      <div className="video-call">
       <div className="video-call-heading">
         <div>
           <strong>Video consultation</strong>
@@ -242,11 +253,12 @@ export default function VideoCall({ appointmentId, date, startTime, endTime }: {
             <div className="call-controls" aria-label="Video call controls">
               <button type="button" className={`call-control ${microphoneMuted ? 'is-disabled' : ''}`} onClick={toggleMicrophone} aria-label={microphoneMuted ? 'Turn microphone on' : 'Mute microphone'} title={microphoneMuted ? 'Turn microphone on' : 'Mute microphone'}>{microphoneMuted ? 'Mic off' : 'Mic on'}</button>
               <button type="button" className={`call-control ${cameraDisabled ? 'is-disabled' : ''}`} onClick={toggleCamera} aria-label={cameraDisabled ? 'Turn camera on' : 'Turn camera off'} title={cameraDisabled ? 'Turn camera on' : 'Turn camera off'}>{cameraDisabled ? 'Camera off' : 'Camera on'}</button>
-              <button type="button" className="call-end-button" onClick={endCall} aria-label="End call" title="End call"><span aria-hidden="true">☎</span></button>
+              <button type="button" className="call-end-button" onClick={() => endCall()} aria-label="End call" title="End call"><span aria-hidden="true">☎</span></button>
             </div>
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </Localized>
   )
 }

@@ -2,15 +2,15 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../index.js'
 import { requireAuth, requireRole, type AuthRequest } from '../middleware/auth.js'
-import { isAppointmentInWindow } from '../appointmentWindow.js'
+import { isAppointmentInWindow, isAppointmentStartInPast } from '../appointmentWindow.js'
 
 const router = Router()
 
 const appointmentSchema = z.object({
   doctorId: z.string().min(1),
-  date: z.string().min(1),
-  startTime: z.string().min(1),
-  endTime: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  startTime: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+  endTime: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
   reason: z.string().min(2),
   animalType: z.string().optional(),
   animalName: z.string().optional(),
@@ -25,6 +25,13 @@ router.post('/', requireAuth, requireRole('FARMER'), async (req: AuthRequest, re
   const parsed = appointmentSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: 'Please complete the appointment form.' })
+  }
+
+  if (parsed.data.endTime <= parsed.data.startTime) {
+    return res.status(400).json({ message: 'The appointment end time must be later than its start time.' })
+  }
+  if (isAppointmentStartInPast(parsed.data.date, parsed.data.startTime)) {
+    return res.status(400).json({ message: 'Appointments must start in the future.' })
   }
 
   const doctor = await prisma.doctorProfile.findUnique({ where: { id: parsed.data.doctorId } })

@@ -16,6 +16,8 @@ import DoctorApprovalPage from './pages/DoctorApprovalPage'
 import NotificationsPage from './pages/NotificationsPage'
 import DiseasePredictionPage from './pages/DiseasePredictionPage'
 import NotificationToasts from './components/NotificationToasts'
+import { Localized, LanguageSwitcher } from './Language'
+import LogoutButton from './components/LogoutButton'
 
 function ModuleBottomNav() {
   const { pathname } = useLocation()
@@ -40,19 +42,36 @@ function ModuleBottomNav() {
   if (!links) return null
 
   return (
-    <nav className={`bottom-nav ${pathname.startsWith('/doctor') ? 'doctor-bottom-nav' : 'farmer-bottom-nav'}`} aria-label="Main navigation">
-      {links.map((link) => (
-        <NavLink key={link.to} to={link.to} end={link.end}>
-          {link.label}
-        </NavLink>
-      ))}
-    </nav>
+    <Localized>
+      <nav className={`bottom-nav ${pathname.startsWith('/doctor') ? 'doctor-bottom-nav' : 'farmer-bottom-nav'}`} aria-label="Main navigation">
+        {links.map((link) => (
+          <NavLink key={link.to} to={link.to} end={link.end}>
+            {link.label}
+          </NavLink>
+        ))}
+      </nav>
+    </Localized>
+  )
+}
+
+function GlobalToolbar() {
+  useLocation()
+  const isAuthenticated = Boolean(localStorage.getItem('ani-care-token'))
+
+  return (
+    <div className="app-toolbar">
+      <div className="app-toolbar-inner">
+        <LanguageSwitcher />
+        {isAuthenticated && <LogoutButton />}
+      </div>
+    </div>
   )
 }
 
 function App() {
   return (
     <BrowserRouter>
+      <GlobalToolbar />
       <ModuleBottomNav />
       <NotificationToasts />
       <Routes>

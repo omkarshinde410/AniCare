@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
+import { Localized } from '../Language'
 
 export default function AdminDashboard() {
   const [pendingDoctors, setPendingDoctors] = useState<any[]>([])
@@ -23,6 +24,7 @@ export default function AdminDashboard() {
 
   return (
     <main className="page shell">
+      <Localized>
       <header className="topbar">
         <div className="brand">AniCare</div>
         <div className="user-chip">Admin Dashboard</div>
@@ -39,6 +41,7 @@ export default function AdminDashboard() {
           <Link className="button primary" to="/admin/doctor-approvals">Review doctors</Link>
         </div>
       </section>
+      </Localized>
     </main>
   )
 }

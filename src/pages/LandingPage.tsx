@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
+import { Localized } from '../Language'
 
 export default function LandingPage() {
   return (
     <main className="page shell">
+      <Localized>
       <header className="topbar">
         <div className="brand">AniCare</div>
         <nav className="nav">
@@ -44,6 +46,7 @@ export default function LandingPage() {
           <p>Doctors generate authenticated treatment PDFs with medicines, dosage, and signature notes.</p>
         </div>
       </section>
+      </Localized>
     </main>
   )
 }

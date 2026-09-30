@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { getNotificationPath } from '../notificationNavigation'
+import { Localized } from '../Language'
 
 type NotificationItem = {
   id: string
   title: string
   message: string
+  type: string
+  appointmentId?: string | null
 }
 
 export default function NotificationToasts() {
+  const navigate = useNavigate()
   const [toasts, setToasts] = useState<NotificationItem[]>([])
   const knownIds = useRef(new Set<string>())
   const initialized = useRef(false)
@@ -77,19 +83,28 @@ export default function NotificationToasts() {
     setToasts((current) => current.filter((toast) => toast.id !== id))
   }
 
+  const openNotification = (notification: NotificationItem) => {
+    const user = JSON.parse(localStorage.getItem('ani-care-user') ?? '{}')
+    void api.patch(`/notifications/${notification.id}/read`).catch(() => undefined)
+    dismiss(notification.id)
+    navigate(getNotificationPath(notification, user.role ?? 'FARMER'))
+  }
+
   if (toasts.length === 0) return null
 
   return (
-    <aside className="notification-toasts" aria-live="polite" aria-label="New notifications">
-      {toasts.map((toast) => (
-        <article className="notification-toast" key={toast.id}>
-          <div>
-            <strong>{toast.title}</strong>
-            <p>{toast.message}</p>
-          </div>
-          <button type="button" onClick={() => dismiss(toast.id)} aria-label="Dismiss notification">×</button>
-        </article>
-      ))}
-    </aside>
+    <Localized>
+      <aside className="notification-toasts" aria-live="polite" aria-label="New notifications">
+        {toasts.map((toast) => (
+          <article className="notification-toast" key={toast.id}>
+            <button type="button" className="notification-toast-open" onClick={() => openNotification(toast)}>
+              <strong>{toast.title}</strong>
+              <p>{toast.message}</p>
+            </button>
+            <button type="button" onClick={() => dismiss(toast.id)} aria-label="Dismiss notification">×</button>
+          </article>
+        ))}
+      </aside>
+    </Localized>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { Localized } from '../Language'
 
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState<any[]>([])
@@ -41,6 +42,7 @@ export default function AlertsPage() {
 
   return (
     <main className="page shell">
+      <Localized>
       <section className="alerts-header">
         <div><p className="section-kicker">LOCAL ANIMAL HEALTH</p><h1>Disease watch</h1><p>Active reports shared by veterinarians in your area.</p></div>
         <div className="location-chip">⌖ {locationMessage}</div>
@@ -64,6 +66,7 @@ export default function AlertsPage() {
             ))}
           </div>
       )}
+      </Localized>
     </main>
   )
 }

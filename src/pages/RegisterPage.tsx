@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { Localized } from '../Language'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -28,6 +29,7 @@ export default function RegisterPage() {
 
   return (
     <main className="page center">
+      <Localized>
       <div className="card form-card">
         <h1>Register</h1>
         <form onSubmit={handleSubmit} className="stack">
@@ -41,7 +43,17 @@ export default function RegisterPage() {
           </label>
           <label>
             Contact number
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+            <input
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
+              pattern="[0-9]{10}"
+              maxLength={15}
+              title="Enter exactly 10 digits."
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+              required
+            />
           </label>
           <label>
             Password
@@ -60,6 +72,7 @@ export default function RegisterPage() {
           <button type="submit" className="button primary full-width">Create account</button>
         </form>
       </div>
+      </Localized>
     </main>
   )
 }

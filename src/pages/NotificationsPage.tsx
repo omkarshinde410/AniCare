@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { getNotificationPath } from '../notificationNavigation'
+import { Localized } from '../Language'
 
 type NotificationItem = {
   id: string
@@ -16,6 +19,7 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState<'ALL' | 'UNREAD'>('ALL')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
   const role = JSON.parse(localStorage.getItem('ani-care-user') ?? '{}').role ?? 'FARMER'
 
   const loadNotifications = () => api.get('/notifications')
@@ -36,6 +40,11 @@ export default function NotificationsPage() {
     }
   }
 
+  const openNotification = async (notification: NotificationItem) => {
+    if (!notification.read) await markRead(notification.id)
+    navigate(getNotificationPath(notification, role))
+  }
+
   const visibleNotifications = notifications.filter((notification) => {
     const matchesFilter = filter === 'ALL' || !notification.read
     const searchText = `${notification.title} ${notification.message}`.toLowerCase()
@@ -45,6 +54,7 @@ export default function NotificationsPage() {
 
   return (
     <main className="page shell">
+      <Localized>
       <section className="notifications-heading">
         <div><p className="section-kicker">{role === 'DOCTOR' ? 'PRACTICE UPDATES' : 'FARMER UPDATES'}</p><h1>Inbox</h1><p>Appointment and care updates, all in one place.</p></div>
         <div className="inbox-count"><strong>{unreadCount}</strong><span>unread</span></div>
@@ -64,17 +74,18 @@ export default function NotificationsPage() {
           <div className="notification-list">
             {visibleNotifications.map((notification) => (
               <article className={`notification-item inbox-item ${notification.read ? 'is-read' : ''}`} key={notification.id}>
-                <div>
+                <button className="notification-open" type="button" onClick={() => void openNotification(notification)}>
                   <div className="inbox-item-title"><span className={`notification-dot ${notification.read ? 'read' : ''}`} /><strong>{notification.title}</strong></div>
                   <p>{notification.message}</p>
                   <time dateTime={notification.createdAt}>{new Date(notification.createdAt).toLocaleString()}</time>
-                </div>
+                </button>
                 {!notification.read && <button className="button secondary" onClick={() => markRead(notification.id)}>Mark read</button>}
               </article>
             ))}
           </div>
         )}
       </section>
+      </Localized>
     </main>
   )
 }

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
+import { Localized } from '../Language'
 
 type PredictionOptions = {
   animals: string[]
@@ -68,6 +69,7 @@ export default function DiseasePredictionPage() {
 
   return (
     <main className="page shell">
+      <Localized>
       <header className="topbar">
         <div className="brand">AniCare</div>
         <Link to="/farmer">Farmer home</Link>
@@ -138,6 +140,7 @@ export default function DiseasePredictionPage() {
           <p className="prediction-disclaimer">This is an experimental dataset match, not a diagnosis or a validated probability. The reference data is limited; contact a veterinarian for assessment, especially if symptoms are severe or worsening.</p>
         </section>
       )}
+      </Localized>
     </main>
   )
 }

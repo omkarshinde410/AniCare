@@ -10,3 +10,8 @@ export function isAppointmentInWindow(date: string, startTime: string, endTime: 
   const end = parseAppointmentTime(date, endTime)
   return Number.isFinite(start.getTime()) && Number.isFinite(end.getTime()) && now >= start && now <= end
 }
+
+export function isAppointmentStartInPast(date: string, startTime: string, now = new Date()) {
+  const start = parseAppointmentTime(date, startTime)
+  return !Number.isFinite(start.getTime()) || start <= now
+}

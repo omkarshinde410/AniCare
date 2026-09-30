@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
+import { Localized } from '../Language'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ export default function ProfilePage() {
 
   return (
     <main className="page shell">
+      <Localized>
       <section className="profile-heading"><p className="section-kicker">ACCOUNT</p><h1>Your profile</h1><p>Account details and sign-in controls.</p></section>
       <section className="profile-identity">
         <div className="profile-avatar">{initials}</div>
@@ -33,6 +35,7 @@ export default function ProfilePage() {
         <Link to="/farmer/notifications"><span><strong>Notifications</strong><small>Review appointment and care updates</small></span><b>→</b></Link>
         <button className="logout-button" onClick={handleLogout}><span><strong>Sign out</strong><small>End this session on this device</small></span><b>↗</b></button>
       </section>
+      </Localized>
     </main>
   )
 }

@@ -11,7 +11,7 @@ const registerSchema = z.object({
   fullName: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
-  phone: z.string().optional(),
+  phone: z.string().regex(/^\d{10}$/).optional(),
   role: z.enum(['FARMER', 'DOCTOR', 'ADMIN']).default('FARMER'),
 })
 

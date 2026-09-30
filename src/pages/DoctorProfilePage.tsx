@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api'
+import { Localized } from '../Language'
 
 export default function DoctorProfilePage() {
   const { id } = useParams()
@@ -19,15 +20,18 @@ export default function DoctorProfilePage() {
   if (loading) {
     return (
       <main className="page shell">
+        <Localized>
         <div className="loading-row"><span className="call-spinner" />Loading veterinarian profile…</div>
+        </Localized>
       </main>
     )
   }
 
-  if (!doctor) return <main className="page shell"><div className="alert-empty"><h2>Profile unavailable</h2><p>{error || 'This veterinarian profile could not be found.'}</p><Link className="button secondary" to="/farmer/doctors">Back to doctors</Link></div></main>
+  if (!doctor) return <main className="page shell"><Localized><div className="alert-empty"><h2>Profile unavailable</h2><p>{error || 'This veterinarian profile could not be found.'}</p><Link className="button secondary" to="/farmer/doctors">Back to doctors</Link></div></Localized></main>
 
   return (
     <main className="page shell">
+      <Localized>
       <Link className="back-link" to="/farmer/doctors">← All veterinarians</Link>
       <section className="vet-profile-hero">
         <div className="vet-profile-avatar">{(doctor.user?.fullName ?? doctor.fullName).split(' ').map((part: string) => part[0]).slice(0, 2).join('').toUpperCase()}</div>
@@ -46,6 +50,7 @@ export default function DoctorProfilePage() {
         </div>
         <aside className="vet-booking-panel"><p className="section-kicker">NEED A CONSULTATION?</p><h2>Request an appointment</h2><p>Choose a time and describe what your animal needs. The veterinarian will confirm your request.</p><Link className="button primary full-width" to={`/farmer/doctors/${id}/book`}>Continue to booking</Link></aside>
       </section>
+      </Localized>
     </main>
   )
 }

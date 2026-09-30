@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { Localized } from '../Language'
 
 export default function DoctorApprovalPage() {
   const [doctors, setDoctors] = useState<any[]>([])
@@ -17,6 +18,7 @@ export default function DoctorApprovalPage() {
 
   return (
     <main className="page shell">
+      <Localized>
       <div className="card">
         <h1>Doctor Verification</h1>
         {doctors.length === 0 ? <p>No pending doctors.</p> : doctors.map((doctor) => (
@@ -33,6 +35,7 @@ export default function DoctorApprovalPage() {
           </div>
         ))}
       </div>
+      </Localized>
     </main>
   )
 }
